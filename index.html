@@ -1,15 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ossi Schober aka OLYNX says HI</title>
-    <!-- 8-Bit Font von Google Fonts -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Google tag (gtag.js) -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OLYNX | Golden Gate Bridge 3D</title>
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -25,199 +19,725 @@
       gtag("config", "G-DBZYLSB0N2");
     </script>
     <style>
-      :root {
-        --neon-green: #39ff14;
-        --dark-bg: #0a0a0a;
-      }
-
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        background-color: var(--dark-bg);
-        color: var(--neon-green);
-        font-family: "Press Start 2P", cursive;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-        text-transform: uppercase;
-      }
-
-      /* Scanline / CRT Effekt Overlay */
-      body::before {
-        content: " ";
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        background: linear-gradient(
-            rgba(18, 16, 16, 0) 50%,
-            rgba(0, 0, 0, 0.25) 50%
-          ),
-          linear-gradient(
-            90deg,
-            rgba(255, 0, 0, 0.06),
-            rgba(0, 255, 0, 0.02),
-            rgba(0, 0, 255, 0.06)
-          );
-        z-index: 10;
-        background-size: 100% 3px, 3px 100%;
-        pointer-events: none;
-      }
-
-      /* Bildschirm Gehäuse */
-      .crt-screen {
-        text-align: center;
-        padding: 3rem 2rem;
-        border: 6px solid #444;
-        box-shadow: 0 0 0 10px #222, 0 0 30px var(--neon-green),
-          inset 0 0 40px rgba(57, 255, 20, 0.2);
-        background: rgba(0, 15, 0, 0.9);
-        position: relative;
-        z-index: 5;
-        max-width: 85%;
-        animation: flicker 0.2s infinite;
-      }
-
-      h1 {
-        font-size: 1.4rem; /* Etwas kleiner für den längeren Namen */
-        line-height: 1.4;
-        margin-bottom: 2rem;
-        letter-spacing: 2px;
-        text-shadow: 3px 3px #000;
-      }
-
-      .status-box {
-        border: 2px dashed var(--neon-green);
-        padding: 15px;
-        margin-bottom: 2rem;
-        font-size: 0.65rem;
-        line-height: 1.8;
-        color: #fff;
-        text-shadow: 0 0 5px var(--neon-green);
-      }
-
-      .loading-container {
-        width: 100%;
-        margin-bottom: 2.5rem;
-      }
-
-      .loading-bar {
-        width: 100%;
-        height: 25px;
-        border: 3px solid var(--neon-green);
-        padding: 3px;
-        box-sizing: border-box;
-      }
-
-      .loading-progress {
-        width: 85%; /* Fortschrittsanzeige */
-        height: 100%;
-        background-color: var(--neon-green);
-        animation: progress-blink 1s steps(2, start) infinite;
-      }
-
-      .fb-button {
-        display: inline-block;
-        padding: 15px 20px;
-        background-color: transparent;
-        color: var(--neon-green);
-        border: 4px solid var(--neon-green);
-        text-decoration: none;
-        font-size: 0.8rem;
-        transition: all 0.1s;
-        cursor: pointer;
-        box-shadow: 5px 5px 0px #000;
-      }
-
-      .fb-button:hover {
-        background-color: var(--neon-green);
-        color: var(--dark-bg);
-        box-shadow: 0px 0px 0px #000;
-        transform: translate(2px, 2px);
-      }
-
-      /* Animationen */
-      @keyframes flicker {
-        0% {
-          opacity: 0.99;
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', sans-serif; }
+        #canvas-container { width: 100%; height: 100vh; }
+        #ui-layer {
+            position: absolute; top: 20px; right: 20px; width: 300px;
+            background: rgba(10, 15, 20, 0.8); backdrop-filter: blur(12px);
+            padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+            color: #e0e0e0; font-size: 13px;
         }
-        5% {
-          opacity: 0.95;
+        h2 { margin: 0 0 20px 0; font-weight: 300; letter-spacing: 2px; color: #ffab40; font-size: 18px; text-transform: uppercase; border-bottom: 1px solid rgba(255,171,64,0.2); padding-bottom: 10px; }
+        .slider-group { margin-bottom: 18px; }
+        .label-row { display: flex; justify-content: space-between; margin-bottom: 6px; color: #889; }
+        input[type=range] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-track { width: 100%; height: 4px; background: #333; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #ffab40; margin-top: -5px; cursor: pointer; transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; justify-content: center; align-items: center;
+            color: #ffab40; font-size: 20px; letter-spacing: 4px; z-index: 999;
+            transition: opacity 1s ease-out;
         }
-        10% {
-          opacity: 0.99;
-        }
-        100% {
-          opacity: 1;
-        }
-      }
-
-      @keyframes progress-blink {
-        to {
-          visibility: hidden;
-        }
-      }
-
-      .blink {
-        animation: progress-blink 0.8s steps(2, start) infinite;
-      }
-
-      @media (max-width: 600px) {
-        h1 {
-          font-size: 0.9rem;
-        }
-        .status-box {
-          font-size: 0.5rem;
-        }
-        .fb-button {
-          font-size: 0.6rem;
-        }
-      }
     </style>
-  </head>
-  <body>
-    <div class="crt-screen">
-      <!-- Dein neuer Titel -->
-      <h1>Ossi Schober<br />aka OLYNX<br />says HI</h1>
-
-      <div class="status-box">
-        > INITIALIZING SYSTEM...<br />
-        > STATUS: UNDER CONSTRUCTION<br />
-        > LOCATION: WORLD WIDE WEB
-      </div>
-
-      <div class="loading-container">
-        <div class="loading-bar">
-          <div class="loading-progress"></div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="loader">BUILDING WORLD...</div>
+    <div id="ui-layer">
+        <h2>Atmosphere</h2>
+        <div class="slider-group">
+            <div class="label-row"><span>Time of Day</span><span id="txt-time">17:30</span></div>
+            <input type="range" id="sl-time" min="0" max="24" step="0.05" value="17.5">
         </div>
-        <p style="font-size: 0.5rem; margin-top: 10px">
-          LOADING AWESOMENESS... 85%
-        </p>
-      </div>
-
-      <p style="font-size: 0.6rem; margin-bottom: 20px" class="blink">
-        PRESS BUTTON TO START
-      </p>
-
-      <!-- Dein Facebook Link -->
-      <a
-        href="https://www.facebook.com/share/1GoqHGmBty/"
-        target="_blank"
-        class="fb-button"
-      >
-        [ VISIT_FACEBOOK ]
-      </a>
-
-      <div style="margin-top: 40px; font-size: 0.4rem; opacity: 0.6">
-        &copy; 2026 OLYNX_DIGITAL v1.0.9<br />
-        POWERED BY RETRO-OS
-      </div>
+        <div class="slider-group">
+            <div class="label-row"><span>Fog Density</span><span id="txt-fog">15%</span></div>
+            <input type="range" id="sl-fog" min="0" max="100" value="15">
+        </div>
+        <div class="slider-group">
+            <div class="label-row"><span>Traffic Volume</span><span id="txt-traffic">80%</span></div>
+            <input type="range" id="sl-traffic" min="0" max="100" value="80">
+        </div>
+        <div class="slider-group">
+            <div class="label-row"><span>Cam Zoom</span><span id="txt-zoom">1.0</span></div>
+            <input type="range" id="sl-zoom" min="0.5" max="2.5" step="0.1" value="1.0">
+        </div>
     </div>
-  </body>
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+        // --- Configuration ---
+        const CONFIG = {
+            bridgeColor: 0xC0362C,
+            roadColor: 0x222222,
+            waterColor: 0x001520,
+            towerHeight: 230,
+            towerWidth: 20,
+            spanMain: 1280,
+            deckHeight: 67,
+            carCount: 500,
+        };
+
+        const STATE = { time: 17.5, fog: 0.15, traffic: 0.8 };
+
+        // --- Texture Generation (Procedural) ---
+        function createNoiseTexture(width, height, scale = 1, opacity = 1) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0,0,width,height);
+            
+            const idata = ctx.getImageData(0,0,width,height);
+            const buffer = idata.data;
+            for(let i=0; i<buffer.length; i+=4) {
+                const noise = (Math.random() - 0.5) * scale * 255;
+                buffer[i] = Math.min(255, Math.max(0, buffer[i] + noise));
+                buffer[i+1] = Math.min(255, Math.max(0, buffer[i+1] + noise));
+                buffer[i+2] = Math.min(255, Math.max(0, buffer[i+2] + noise));
+                buffer[i+3] = 255 * opacity;
+            }
+            ctx.putImageData(idata, 0, 0);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createRoadTexture() {
+            const w = 1024, h = 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            
+            // Asphalt base
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0,0,w,h);
+            
+            // Noise
+            const noise = createNoiseTexture(w,h, 0.1, 0.5).image;
+            ctx.globalAlpha = 0.2;
+            ctx.drawImage(noise, 0,0);
+            ctx.globalAlpha = 1.0;
+
+            // Lines
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.setLineDash([40, 60]); // Dashed white lines
+            
+            // 6 lanes (3 each way)
+            const laneW = w / 6;
+            for(let i=1; i<6; i++) {
+                if(i === 3) continue; // Skip center
+                ctx.beginPath();
+                ctx.moveTo(i*laneW, 0);
+                ctx.lineTo(i*laneW, h);
+                ctx.stroke();
+            }
+
+            // Double Yellow Center
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#ffcc00';
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(w/2 - 6, 0);
+            ctx.lineTo(w/2 - 6, h);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(w/2 + 6, 0);
+            ctx.lineTo(w/2 + 6, h);
+            ctx.stroke();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.anisotropy = 16;
+            tex.repeat.set(1, 20);
+            return tex;
+        }
+
+        function createWaterNormalMap() {
+            const w = 512, h = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            
+            // Generate random gradients to simulate waves for normal map usage
+            // This is a rough approximation.
+            for(let i=0; i<5000; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const r = Math.random() * 20 + 5;
+                const grad = ctx.createRadialGradient(x,y,0, x,y,r);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${Math.random()*0.1})`);
+                grad.addColorStop(1, 'rgba(128, 128, 255, 0)'); // Neutral normal blue-ish base
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+            }
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(10, 10);
+            return tex;
+        }
+
+        const texRoad = createRoadTexture();
+        const texConcrete = createNoiseTexture(512, 512, 0.2); // Rough concrete
+        const texWaterNormal = createWaterNormalMap();
+
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x111111, 0.0005);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 1, 10000);
+        camera.position.set(-600, 200, 800);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI/2 - 0.05;
+        controls.minDistance = 50;
+        controls.maxDistance = 4000;
+
+        // Post-Process
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.7; // High threshold so only lights bloom
+        bloomPass.strength = 0.8; 
+        bloomPass.radius = 0.3;
+        composer.addPass(bloomPass);
+
+        // --- Materials ---
+        const matBridge = new THREE.MeshStandardMaterial({ 
+            color: CONFIG.bridgeColor, 
+            roughness: 0.6, 
+            metalness: 0.1,
+            map: texConcrete 
+        });
+        const matRoad = new THREE.MeshStandardMaterial({ 
+            color: 0xffffff, 
+            map: texRoad, 
+            roughness: 0.8 
+        });
+        const matCable = new THREE.MeshStandardMaterial({ color: CONFIG.bridgeColor, roughness: 0.5 });
+        const matDarkMetal = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.7 });
+
+        // --- Geometry: High-Res Towers ---
+        function createArtDecoTower() {
+            const geometries = [];
+            const w = CONFIG.towerWidth;
+            const h = CONFIG.towerHeight;
+            const d = 30; // Depth of leg
+
+            // We build one leg using stepped boxes
+            // Tier 1 (Base)
+            let box = new THREE.BoxGeometry(w, h * 0.4, d);
+            box.translate(0, h * 0.2, 0);
+            geometries.push(box);
+
+            // Tier 2 (Middle)
+            let box2 = new THREE.BoxGeometry(w * 0.85, h * 0.35, d * 0.85);
+            box2.translate(0, h * 0.4 + h * 0.35/2, 0);
+            geometries.push(box2);
+
+            // Tier 3 (Top)
+            let box3 = new THREE.BoxGeometry(w * 0.7, h * 0.25, d * 0.7);
+            box3.translate(0, h * 0.4 + h * 0.35 + h * 0.25/2, 0);
+            geometries.push(box3);
+
+            // Ribbing (Vertical stripes)
+            const ribCount = 4;
+            const ribGeo = new THREE.BoxGeometry(1.5, h, 2);
+            for(let i=0; i<ribCount; i++) {
+                // Front ribs
+                let r = ribGeo.clone();
+                let xOff = (i - (ribCount-1)/2) * (w/ribCount) * 0.6;
+                r.translate(xOff, h/2, d/2 + 1);
+                geometries.push(r);
+                
+                // Back ribs
+                let r2 = ribGeo.clone();
+                r2.translate(xOff, h/2, -d/2 - 1);
+                geometries.push(r2);
+            }
+
+            // Merge Leg
+            const legGeo = BufferGeometryUtils.mergeGeometries(geometries);
+            
+            // Create Full Tower (2 Legs + Struts)
+            const fullTowerGeos = [];
+            
+            const leftLeg = legGeo.clone();
+            leftLeg.translate(0, 0, 45); // Spread legs Z
+            fullTowerGeos.push(leftLeg);
+
+            const rightLeg = legGeo.clone();
+            rightLeg.translate(0, 0, -45);
+            fullTowerGeos.push(rightLeg);
+
+            // Cross Struts (Art Deco X patterns logic simplified to horizontal beams for stability look)
+            // Real GG bridge has 4 distinctive struts above deck
+            const heights = [0.35, 0.55, 0.75, 0.92];
+            heights.forEach(pct => {
+                const strutH = 6;
+                const strut = new THREE.BoxGeometry(w*0.8, strutH, 90); // Connects legs
+                strut.translate(0, h * pct, 0);
+                fullTowerGeos.push(strut);
+            });
+
+            // Arch decoration above strut? Keep it simple but stepped
+            
+            return BufferGeometryUtils.mergeGeometries(fullTowerGeos);
+        }
+
+        const towerGeo = createArtDecoTower();
+        const tower1 = new THREE.Mesh(towerGeo, matBridge);
+        const tower2 = new THREE.Mesh(towerGeo, matBridge);
+        
+        tower1.position.set(-CONFIG.spanMain/2, 0, 0);
+        tower2.position.set(CONFIG.spanMain/2, 0, 0);
+        tower1.castShadow = true; tower1.receiveShadow = true;
+        tower2.castShadow = true; tower2.receiveShadow = true;
+        scene.add(tower1, tower2);
+
+        // --- Deck ---
+        const deckGeo = new THREE.BoxGeometry(2600, 5, 80); // Includes side spans roughly
+        const deckMesh = new THREE.Mesh(deckGeo, matDarkMetal); // Truss underbody
+        deckMesh.position.y = CONFIG.deckHeight - 3;
+        scene.add(deckMesh);
+
+        const roadGeo = new THREE.PlaneGeometry(2600, 78);
+        roadGeo.rotateX(-Math.PI/2);
+        const roadMesh = new THREE.Mesh(roadGeo, matRoad);
+        roadMesh.position.y = CONFIG.deckHeight;
+        roadMesh.receiveShadow = true;
+        scene.add(roadMesh);
+
+        // --- Cables (CatmullRom) ---
+        function createCableSystem() {
+            const group = new THREE.Group();
+            
+            const mainSpanSag = 150;
+            const sideSpanSag = 50;
+            const tHeight = CONFIG.towerHeight;
+            const x1 = -CONFIG.spanMain/2;
+            const x2 = CONFIG.spanMain/2;
+            const zOff = 45; // Align with legs
+
+            // Helper for parabola
+            function getParabolaY(x, xStart, xEnd, yStart, yEnd, sag) {
+                const t = (x - xStart) / (xEnd - xStart);
+                const linearY = yStart + (yEnd - yStart) * t;
+                const parabola = 4 * sag * t * (1 - t);
+                return linearY - parabola;
+            }
+
+            [-zOff, zOff].forEach(z => {
+                // Points for the main cable line
+                const points = [];
+                const segments = 100;
+                
+                // Left Side Span
+                for(let i=0; i<=20; i++) {
+                    const x = THREE.MathUtils.lerp(-1300, x1, i/20);
+                    const y = getParabolaY(x, -1300, x1, CONFIG.deckHeight, tHeight, sideSpanSag);
+                    points.push(new THREE.Vector3(x,y,z));
+                }
+                // Main Span
+                for(let i=0; i<=60; i++) {
+                    const x = THREE.MathUtils.lerp(x1, x2, i/60);
+                    const y = getParabolaY(x, x1, x2, tHeight, tHeight, mainSpanSag);
+                    points.push(new THREE.Vector3(x,y,z));
+                }
+                // Right Side Span
+                for(let i=0; i<=20; i++) {
+                    const x = THREE.MathUtils.lerp(x2, 1300, i/20);
+                    const y = getParabolaY(x, x2, 1300, tHeight, CONFIG.deckHeight, sideSpanSag);
+                    points.push(new THREE.Vector3(x,y,z));
+                }
+
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tube = new THREE.TubeGeometry(curve, 150, 1.2, 8, false);
+                const mesh = new THREE.Mesh(tube, matCable);
+                mesh.castShadow = true;
+                group.add(mesh);
+
+                // Vertical Suspenders
+                const suspenderCount = 140; // Total across all spans
+                const susGeos = [];
+                const singleSusGeo = new THREE.CylinderGeometry(0.3, 0.3, 1, 6);
+                singleSusGeo.translate(0, 0.5, 0); // Pivot at bottom
+
+                for(let i=0; i<suspenderCount; i++) {
+                    const t = i / (suspenderCount-1);
+                    const pt = curve.getPoint(t);
+                    
+                    // Don't place inside towers
+                    if(Math.abs(pt.x - x1) < 10 || Math.abs(pt.x - x2) < 10) continue;
+                    // Don't place if below deck (anchors)
+                    if(pt.y < CONFIG.deckHeight + 1) continue;
+
+                    const h = pt.y - CONFIG.deckHeight;
+                    const sus = singleSusGeo.clone();
+                    sus.scale(1, h, 1);
+                    sus.translate(pt.x, CONFIG.deckHeight, pt.z);
+                    susGeos.push(sus);
+                }
+                if(susGeos.length > 0) {
+                    const merged = BufferGeometryUtils.mergeGeometries(susGeos);
+                    group.add(new THREE.Mesh(merged, matCable));
+                }
+            });
+            return group;
+        }
+        scene.add(createCableSystem());
+
+        // --- Water (Custom Shader) ---
+        const waterVertex = `
+            varying vec2 vUv;
+            varying vec3 vWorldPos;
+            uniform float time;
+            void main() {
+                vUv = uv * 10.0; // Tiling
+                vec3 pos = position;
+                // Large swelling waves
+                float wave = sin(pos.x * 0.002 + time) * 2.0 + cos(pos.z * 0.0015 + time*0.8) * 2.0;
+                pos.y += wave;
+                vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+                gl_Position = projectionMatrix * viewMatrix * vec4(pos, 1.0);
+            }
+        `;
+        const waterFragment = `
+            varying vec2 vUv;
+            varying vec3 vWorldPos;
+            uniform vec3 color;
+            uniform sampler2D normalMap;
+            uniform float time;
+            uniform vec3 sunPos;
+            uniform vec3 cameraPos;
+            uniform float fogDensity;
+            uniform vec3 fogColor;
+
+            void main() {
+                // Moving normal maps
+                vec2 uv1 = vUv + vec2(time * 0.03, time * 0.01);
+                vec2 uv2 = vUv - vec2(time * 0.02, time * 0.04);
+                vec3 n1 = texture2D(normalMap, uv1).rgb * 2.0 - 1.0;
+                vec3 n2 = texture2D(normalMap, uv2).rgb * 2.0 - 1.0;
+                vec3 normal = normalize(n1 + n2 + vec3(0.0, 5.0, 0.0)); // Bias up
+
+                // Specular (Sun reflection)
+                vec3 viewDir = normalize(cameraPos - vWorldPos);
+                vec3 lightDir = normalize(sunPos - vWorldPos);
+                vec3 halfDir = normalize(lightDir + viewDir);
+                float NdotH = max(0.0, dot(normal, halfDir));
+                float specular = pow(NdotH, 100.0) * 2.0; // Sharp highlights
+
+                // Fresnel
+                float fresnel = pow(1.0 - max(0.0, dot(viewDir, normal)), 4.0);
+                
+                vec3 finalColor = mix(color, vec3(0.3, 0.4, 0.5), fresnel * 0.5);
+                finalColor += vec3(1.0, 0.9, 0.7) * specular;
+
+                // Fog logic
+                float dist = length(cameraPos - vWorldPos);
+                float fogFactor = 1.0 - exp(-fogDensity * fogDensity * dist * dist * 0.000005);
+                
+                gl_FragColor = vec4(mix(finalColor, fogColor, fogFactor), 1.0);
+            }
+        `;
+        
+        const waterUniforms = {
+            time: { value: 0 },
+            color: { value: new THREE.Color(CONFIG.waterColor) },
+            normalMap: { value: texWaterNormal },
+            sunPos: { value: new THREE.Vector3() },
+            cameraPos: { value: camera.position },
+            fogDensity: { value: STATE.fog },
+            fogColor: { value: new THREE.Color(0x000000) }
+        };
+        const waterMat = new THREE.ShaderMaterial({
+            vertexShader: waterVertex,
+            fragmentShader: waterFragment,
+            uniforms: waterUniforms
+        });
+        const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 128, 128).rotateX(-Math.PI/2), waterMat);
+        scene.add(waterMesh);
+
+        // --- Traffic System ---
+        function createDetailedCarGeometry() {
+            // Merged geometry for a single car instance
+            const geos = [];
+            // Body
+            const body = new THREE.BoxGeometry(4.2, 1.2, 1.8);
+            body.translate(0, 1.1, 0);
+            geos.push(body);
+            // Cabin
+            const cabin = new THREE.BoxGeometry(2.5, 0.8, 1.6);
+            cabin.translate(-0.3, 2.1, 0);
+            geos.push(cabin);
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 12);
+            wheelGeo.rotateX(Math.PI/2);
+            const w1 = wheelGeo.clone(); w1.translate(1.2, 0.4, 0.8); geos.push(w1);
+            const w2 = wheelGeo.clone(); w2.translate(-1.2, 0.4, 0.8); geos.push(w2);
+            const w3 = wheelGeo.clone(); w3.translate(1.2, 0.4, -0.8); geos.push(w3);
+            const w4 = wheelGeo.clone(); w4.translate(-1.2, 0.4, -0.8); geos.push(w4);
+
+            return BufferGeometryUtils.mergeGeometries(geos);
+        }
+        
+        const carGeo = createDetailedCarGeometry();
+        const carMat = new THREE.MeshStandardMaterial({ color: 0x3366cc, roughness: 0.3, metalness: 0.6 });
+        const carMesh = new THREE.InstancedMesh(carGeo, carMat, CONFIG.carCount);
+        carMesh.castShadow = true;
+        scene.add(carMesh);
+
+        // Separate instances for lights (to toggle emissive)
+        const carLightGeo = new THREE.PlaneGeometry(0.4, 0.2); // Simple sprites or planes
+        const headLightMat = new THREE.MeshBasicMaterial({ color: 0xffffee, side: THREE.DoubleSide });
+        const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+        
+        const headLights = new THREE.InstancedMesh(carLightGeo, headLightMat, CONFIG.carCount * 2);
+        const tailLights = new THREE.InstancedMesh(carLightGeo, tailLightMat, CONFIG.carCount * 2);
+        scene.add(headLights, tailLights);
+
+        const cars = [];
+        for(let i=0; i<CONFIG.carCount; i++) {
+            cars.push({
+                x: (Math.random()-0.5) * 2400,
+                lane: Math.floor(Math.random()*6), // 0-2 one way, 3-5 other way
+                speed: 0
+            });
+        }
+
+        // --- Lighting ---
+        const sunLight = new THREE.DirectionalLight(0xfffaed, 2.0);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.set(4096, 4096);
+        sunLight.shadow.camera.left = -1500;
+        sunLight.shadow.camera.right = 1500;
+        sunLight.shadow.camera.top = 1500;
+        sunLight.shadow.camera.bottom = -1500;
+        sunLight.shadow.bias = -0.0001;
+        scene.add(sunLight);
+
+        const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
+        scene.add(ambientLight);
+
+        // --- Terrain ---
+        const terrainGeo = new THREE.PlaneGeometry(5000, 5000, 128, 128);
+        terrainGeo.rotateX(-Math.PI/2);
+        const pos = terrainGeo.attributes.position;
+        for(let i=0; i<pos.count; i++) {
+            const x = pos.getX(i);
+            const z = pos.getZ(i);
+            // Heightmap logic
+            let y = 0;
+            // Marin (Left)
+            if(x < -800) {
+                const d = Math.abs(x + 800);
+                y = Math.sin(x*0.003)*50 + Math.cos(z*0.003)*50 + d*0.2;
+                y += Math.random()*5;
+            }
+            // SF (Right)
+            else if(x > 800) {
+                const d = Math.abs(x - 800);
+                y = Math.sin(x*0.004)*30 + Math.cos(z*0.004)*30 + d*0.1;
+            }
+            else {
+                y = -500; // Deep water under bridge
+            }
+            pos.setY(i, Math.max(-50, y));
+        }
+        terrainGeo.computeVertexNormals();
+        const terrainMat = new THREE.MeshStandardMaterial({ 
+            color: 0x3a4f2a, 
+            roughness: 1.0, 
+            map: createNoiseTexture(512,512,0.5,0.2) // Grass noise
+        }); 
+        const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+        terrain.receiveShadow = true;
+        scene.add(terrain);
+
+        // --- Loop ---
+        const clock = new THREE.Clock();
+        const dummy = new THREE.Object3D();
+        const lightDummy = new THREE.Object3D();
+
+        function updateEnvironment() {
+            const time = STATE.time;
+            const normTime = (time - 6) / 24 * Math.PI * 2; // Sunrise at 6
+            
+            // Sun Movement
+            const r = 2000;
+            const sy = Math.sin(normTime) * r;
+            const sx = Math.cos(normTime) * r;
+            sunLight.position.set(sx, sy, 500);
+            waterUniforms.sunPos.value.copy(sunLight.position);
+
+            // Sky/Fog Colors
+            let skyHex, fogHex, sunInt, ambInt;
+            
+            if(sy > 0) { // Day
+                const t = Math.min(1, sy/1000);
+                skyHex = new THREE.Color(0x60a0ff).lerp(new THREE.Color(0xffaa77), 1-t);
+                fogHex = skyHex.clone().multiplyScalar(0.9);
+                sunInt = 1.5 * t;
+                ambInt = 0.5;
+            } else { // Night
+                skyHex = new THREE.Color(0x050510);
+                fogHex = new THREE.Color(0x050510);
+                sunInt = 0;
+                ambInt = 0.05; // Dark
+            }
+            
+            scene.background = skyHex;
+            scene.fog.color = fogHex;
+            scene.fog.density = 0.0001 + (STATE.fog * 0.002);
+            waterUniforms.fogColor.value.copy(fogHex);
+            waterUniforms.fogDensity.value = scene.fog.density;
+
+            sunLight.intensity = sunInt;
+            ambientLight.intensity = ambInt;
+
+            // Night Lights Bloom Logic
+            const isNight = sy < 100;
+            bloomPass.threshold = isNight ? 0.2 : 0.8;
+            bloomPass.strength = isNight ? 1.2 : 0.3;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            const now = clock.getElapsedTime();
+            
+            waterUniforms.time.value = now;
+
+            updateEnvironment();
+
+            // Traffic
+            const activeCount = Math.floor(CONFIG.carCount * STATE.traffic);
+            carMesh.count = activeCount;
+            headLights.count = activeCount * 2;
+            tailLights.count = activeCount * 2;
+            
+            const isNight = sunLight.position.y < 100;
+
+            for(let i=0; i<activeCount; i++) {
+                const car = cars[i];
+                // Determine direction based on lane (0-2: Left, 3-5: Right)
+                const dir = car.lane < 3 ? -1 : 1;
+                const laneWidth = 12; // approx
+                const z = (car.lane - 2.5) * laneWidth;
+                
+                car.x += (20 + Math.random()*5) * delta * dir * 3; // Speed
+                if(car.x > 1300) car.x = -1300;
+                if(car.x < -1300) car.x = 1300;
+
+                dummy.position.set(car.x, CONFIG.deckHeight + 0.1, z);
+                dummy.rotation.set(0, dir > 0 ? 0 : Math.PI, 0);
+                dummy.updateMatrix();
+                carMesh.setMatrixAt(i, dummy.matrix);
+
+                // Lights
+                if(isNight) {
+                    // Headlights
+                    lightDummy.position.set(car.x + 2.2*dir, CONFIG.deckHeight + 1.2, z + 0.6);
+                    lightDummy.rotation.set(0, dir > 0 ? 0 : Math.PI, 0);
+                    lightDummy.scale.set(1,1,1);
+                    lightDummy.updateMatrix();
+                    headLights.setMatrixAt(i*2, lightDummy.matrix);
+                    
+                    lightDummy.position.z = z - 0.6;
+                    lightDummy.updateMatrix();
+                    headLights.setMatrixAt(i*2+1, lightDummy.matrix);
+
+                    // Taillights
+                    lightDummy.position.set(car.x - 2.2*dir, CONFIG.deckHeight + 1.2, z + 0.6);
+                    lightDummy.updateMatrix();
+                    tailLights.setMatrixAt(i*2, lightDummy.matrix);
+
+                    lightDummy.position.z = z - 0.6;
+                    lightDummy.updateMatrix();
+                    tailLights.setMatrixAt(i*2+1, lightDummy.matrix);
+                } else {
+                    lightDummy.scale.set(0,0,0);
+                    lightDummy.updateMatrix();
+                    headLights.setMatrixAt(i*2, lightDummy.matrix);
+                    headLights.setMatrixAt(i*2+1, lightDummy.matrix);
+                    tailLights.setMatrixAt(i*2, lightDummy.matrix);
+                    tailLights.setMatrixAt(i*2+1, lightDummy.matrix);
+                }
+            }
+            carMesh.instanceMatrix.needsUpdate = true;
+            headLights.instanceMatrix.needsUpdate = true;
+            tailLights.instanceMatrix.needsUpdate = true;
+
+            controls.update();
+            composer.render();
+        }
+
+        // Init
+        document.getElementById('loader').style.opacity = 0;
+        setTimeout(() => document.getElementById('loader').style.display = 'none', 1000);
+        
+        animate();
+
+        // Listeners
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        document.getElementById('sl-time').addEventListener('input', e => {
+            STATE.time = parseFloat(e.target.value);
+            const h = Math.floor(STATE.time);
+            const m = Math.floor((STATE.time%1)*60);
+            document.getElementById('txt-time').innerText = `${h}:${m<10?'0':''}${m}`;
+        });
+        document.getElementById('sl-fog').addEventListener('input', e => {
+            STATE.fog = parseInt(e.target.value)/100;
+            document.getElementById('txt-fog').innerText = e.target.value + '%';
+        });
+        document.getElementById('sl-traffic').addEventListener('input', e => {
+            STATE.traffic = parseInt(e.target.value)/100;
+            document.getElementById('txt-traffic').innerText = e.target.value + '%';
+        });
+        document.getElementById('sl-zoom').addEventListener('input', e => {
+            camera.zoom = parseFloat(e.target.value);
+            camera.updateProjectionMatrix();
+            document.getElementById('txt-zoom').innerText = parseFloat(e.target.value).toFixed(1);
+        });
+
+    </script>
+</body>
 </html>
