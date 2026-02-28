@@ -154,7 +154,7 @@
         var col = new THREE.Color().setHSL(Math.random(), 0.9, 0.55);
         var mat = new THREE.MeshStandardMaterial({
             color: col.clone(),
-            wireframe: Math.random() > 0.6,
+            wireframe: false,
         });
         var mesh = new THREE.Mesh(makeGeo(), mat);
         mesh.position.copy(randPos());
