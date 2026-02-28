@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { overflow: hidden; background: #050505; color: white; font-family: 'Share Tech Mono', monospace; touch-action: none; }
+        body { overflow: hidden; background: #000008; color: white; font-family: 'Share Tech Mono', monospace; touch-action: none; }
         canvas { display: block; position: absolute; top: 0; left: 0; }
 
         #ui { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; user-select: none; z-index: 10; }
@@ -26,6 +26,24 @@
         @keyframes shimmer { to { background-position: 200% center; } }
         #subtitle { font-size: 0.7rem; color: #555; margin-top: 4px; letter-spacing: 2px; }
 
+        #restart-btn {
+            display: inline-block;
+            margin-top: 8px;
+            font-family: 'VT323', monospace;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            color: #00ffcc;
+            background: rgba(0,0,0,0.75);
+            border: 1px solid #00ffcc;
+            border-radius: 6px;
+            padding: 4px 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            pointer-events: all;
+            transition: background 0.2s, color 0.2s;
+        }
+        #restart-btn:hover, #restart-btn:active { background: #00ffcc; color: #000; }
+
         #hud { position: absolute; top: 16px; right: 20px; text-align: right; pointer-events: none; z-index: 10; }
         .hud-label { font-size: 0.6rem; color: #555; letter-spacing: 2px; text-transform: uppercase; }
         .hud-value { font-family: 'VT323', monospace; font-size: 2.8rem; color: #00ffcc; text-shadow: 0 0 20px #00ffcc88; line-height: 1; }
@@ -42,21 +60,8 @@
         #hit-flash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%); opacity: 0; pointer-events: none; z-index: 5; }
         #scanlines { position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px); pointer-events: none; z-index: 15; }
 
-        /* Big tap feedback bubble */
-        .tap-ring {
-            position: absolute;
-            width: 60px; height: 60px;
-            border-radius: 50%;
-            border: 2px solid #00ffcc;
-            transform: translate(-50%, -50%) scale(0.2);
-            opacity: 1;
-            pointer-events: none;
-            z-index: 30;
-            animation: ring-out 0.5s ease-out forwards;
-        }
-        @keyframes ring-out {
-            to { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
-        }
+        .tap-ring { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 2px solid #00ffcc; transform: translate(-50%, -50%) scale(0.2); opacity: 1; pointer-events: none; z-index: 30; animation: ring-out 0.5s ease-out forwards; }
+        @keyframes ring-out { to { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -65,6 +70,7 @@
     <div id="header">
         <h1>Neon Arcade</h1>
         <div id="subtitle">TIPPEN = SCHIESSEN &nbsp;·&nbsp; ZIEHEN = KAMERA</div>
+        <button id="restart-btn">↺ Neustart</button>
     </div>
 </div>
 
@@ -74,13 +80,11 @@
     <div id="combo-display">x<span id="combo-val">2</span> COMBO</div>
 </div>
 
-<div id="milestone">
-    <div id="milestone-text"></div>
-</div>
+<div id="milestone"><div id="milestone-text"></div></div>
 
 <div id="bottom-bar">
     <div class="stat"><div class="stat-label">Abgeschossen</div><div class="stat-val" id="hits-val">0</div></div>
-    <div class="stat"><div class="stat-label">Best Combo</div><div class="stat-val" id="best-combo-val">1</div></div>
+    <div class="stat"><div class="stat-label">Best Combo</div><div class="stat-val" id="best-combo-val">0</div></div>
 </div>
 
 <div id="hit-flash"></div>
@@ -90,16 +94,19 @@
 <script>
 (function() {
     var W = window.innerWidth, H = window.innerHeight;
+    var isMobile = ('ontouchstart' in window);
+    var S = isMobile ? 1.8 : 1.2; // global object scale
 
     // ── Renderer ───────────────────────────────────────────────────────────────
     var renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000008);
     document.body.appendChild(renderer.domElement);
 
     // ── Scene ──────────────────────────────────────────────────────────────────
     var scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x050505, 0.011);
+    scene.fog = new THREE.FogExp2(0x000008, 0.002);
 
     var camera = new THREE.PerspectiveCamera(70, W / H, 0.1, 1000);
     camera.position.set(0, 18, 38);
@@ -107,82 +114,338 @@
 
     // ── Lights ─────────────────────────────────────────────────────────────────
     scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-    var pl1 = new THREE.PointLight(0xff00ff, 2.5, 130);
+    var sunLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
+    sunLight.position.set(80, 60, 40);
+    scene.add(sunLight);
+    var pl1 = new THREE.PointLight(0xff00ff, 2.0, 130);
     pl1.position.set(0, 25, 0);
     scene.add(pl1);
-    scene.add(new THREE.PointLight(0x00ffcc, 1.5, 90));
+    scene.add(new THREE.PointLight(0x00ffcc, 1.0, 90));
 
     // ── Grid ───────────────────────────────────────────────────────────────────
-    scene.add(new THREE.GridHelper(200, 80, 0x00ffcc, 0x1a1a1a));
+    scene.add(new THREE.GridHelper(200, 80, 0x00ffcc, 0x111111));
 
-    // ── Camera orbit state ─────────────────────────────────────────────────────
-    var camTheta = 0, camPhi = 1.1, camR = 40;
-    var camThetaV = 0, camPhiV = 0;
-
-    function applyCamera() {
-        var x = camR * Math.sin(camPhi) * Math.sin(camTheta);
-        var y = camR * Math.cos(camPhi);
-        var z = camR * Math.sin(camPhi) * Math.cos(camTheta);
-        camera.position.set(x, y, z);
-        camera.lookAt(0, 5, 0);
+    // ── Starfield ──────────────────────────────────────────────────────────────
+    var starCount = 2000;
+    var starPos = new Float32Array(starCount * 3);
+    for (var i = 0; i < starCount; i++) {
+        var t = Math.random() * Math.PI * 2;
+        var p = Math.acos(2 * Math.random() - 1);
+        var r = 150 + Math.random() * 100;
+        starPos[i*3]   = r * Math.sin(p) * Math.cos(t);
+        starPos[i*3+1] = r * Math.sin(p) * Math.sin(t);
+        starPos[i*3+2] = r * Math.cos(p);
     }
-    applyCamera();
+    var starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, sizeAttenuation: true })));
 
-    // ── Shapes ─────────────────────────────────────────────────────────────────
-    var TOTAL = 40, BOUNDS = 55;
+    // ── Earth ──────────────────────────────────────────────────────────────────
+    var planets = [];
+    var earthGroup = new THREE.Group();
+    earthGroup.position.set(-60, -20, -95);
+
+    // Ocean
+    earthGroup.add(new THREE.Mesh(
+        new THREE.SphereGeometry(28, 48, 48),
+        new THREE.MeshStandardMaterial({ color: 0x1166cc, emissive: 0x001133, roughness: 0.9 })
+    ));
+
+    // Continents
+    var landMat   = new THREE.MeshStandardMaterial({ color: 0x228833, emissive: 0x0a2210, roughness: 1.0 });
+    var desertMat = new THREE.MeshStandardMaterial({ color: 0xc8a850, emissive: 0x221500, roughness: 1.0 });
+    var iceMat    = new THREE.MeshStandardMaterial({ color: 0xddeeff, emissive: 0x112233, roughness: 0.8 });
+
+    [
+        [20,  20,  1.1, 1.3, landMat],
+        [55,  10,  0.7, 0.8, landMat],
+        [60,  80,  1.4, 1.2, landMat],
+        [-25, 135, 0.6, 0.7, landMat],
+        [45,  -95, 0.9, 1.0, landMat],
+        [-15, -55, 0.6, 0.8, landMat],
+        [25,  50,  0.5, 0.4, desertMat],
+        [20,  -10, 0.4, 0.3, desertMat],
+        [-80, 0,   0.9, 0.5, iceMat],
+        [80,  0,   0.7, 0.4, iceMat],
+    ].forEach(function(c) {
+        var lat = c[0] * Math.PI / 180;
+        var lon = c[1] * Math.PI / 180;
+        var R = 28.2;
+        var patch = new THREE.Mesh(
+            new THREE.SphereGeometry(c[2]*7, 14, 14, 0, Math.PI*c[3]*0.6, 0, Math.PI*c[3]*0.5),
+            c[4]
+        );
+        patch.position.set(R*Math.cos(lat)*Math.cos(lon), R*Math.sin(lat), R*Math.cos(lat)*Math.sin(lon));
+        patch.lookAt(0, 0, 0);
+        earthGroup.add(patch);
+    });
+
+    // Clouds
+    earthGroup.add(new THREE.Mesh(
+        new THREE.SphereGeometry(29.2, 40, 40),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, roughness: 1.0 })
+    ));
+
+    // Atmosphere
+    earthGroup.add(new THREE.Mesh(
+        new THREE.SphereGeometry(30.5, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0x4488ff, emissive: 0x2255cc, emissiveIntensity: 0.4, transparent: true, opacity: 0.12, side: THREE.FrontSide })
+    ));
+
+    earthGroup.userData.rotSpeed = 0.0015;
+    scene.add(earthGroup);
+    planets.push(earthGroup);
+
+    // ── Other planets ──────────────────────────────────────────────────────────
+    [
+        { r: 22, color: 0x4466ff, emissive: 0x112266, x:  70, y:  40, z: -90 },
+        { r: 13, color: 0xff6633, emissive: 0x441100, x: -80, y:  20, z: -70 },
+        { r:  9, color: 0xaa44cc, emissive: 0x330044, x:  90, y: -15, z:  60 },
+        { r: 30, color: 0xffcc44, emissive: 0x443300, x:-110, y:  50, z:-130 },
+        { r:  7, color: 0x44ffaa, emissive: 0x004433, x:  50, y: -30, z:  90 },
+    ].forEach(function(def) {
+        var planet = new THREE.Mesh(
+            new THREE.SphereGeometry(def.r, 32, 32),
+            new THREE.MeshStandardMaterial({ color: def.color, emissive: def.emissive, roughness: 0.8, metalness: 0.1 })
+        );
+        planet.position.set(def.x, def.y, def.z);
+        planet.userData.rotSpeed = (Math.random()-0.5) * 0.003;
+        if (def.r === 30) {
+            var ring = new THREE.Mesh(
+                new THREE.TorusGeometry(46, 6, 4, 64),
+                new THREE.MeshStandardMaterial({ color: 0xddaa33, emissive: 0x221100, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+            );
+            ring.rotation.x = Math.PI * 0.35;
+            planet.add(ring);
+        }
+        scene.add(planet);
+        planets.push(planet);
+    });
+
+    // ── SPACESHIP ──────────────────────────────────────────────────────────────
+    function makeSpaceship() {
+        var g = new THREE.Group();
+        var bodyMat = new THREE.MeshStandardMaterial({ color: 0x7799dd, emissive: 0x112255, metalness: 0.85, roughness: 0.2 });
+        var wingMat = new THREE.MeshStandardMaterial({ color: 0x5577bb, emissive: 0x112244, metalness: 0.7, roughness: 0.3 });
+
+        // Fuselage
+        var fuselage = new THREE.Mesh(new THREE.CylinderGeometry(0.4*S, 0.9*S, 5*S, 12), bodyMat);
+        fuselage.rotation.z = Math.PI / 2;
+        g.add(fuselage);
+
+        // Cockpit
+        var cockpit = new THREE.Mesh(
+            new THREE.SphereGeometry(0.7*S, 12, 8, 0, Math.PI*2, 0, Math.PI*0.55),
+            new THREE.MeshStandardMaterial({ color: 0x44ddff, emissive: 0x0066aa, emissiveIntensity: 1.2, roughness: 0.1 })
+        );
+        cockpit.position.set(0.8*S, 0.55*S, 0);
+        g.add(cockpit);
+
+        // Wings
+        [1, -1].forEach(function(side) {
+            var w = new THREE.Mesh(new THREE.ConeGeometry(1.8*S, 5*S, 3), wingMat.clone());
+            w.position.set(-0.5*S, 0, side * 2.2*S);
+            w.rotation.x = side * Math.PI / 2;
+            w.rotation.z = 0.3;
+            g.add(w);
+        });
+
+        // Engines + flames
+        var nozzleMat = new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 1, roughness: 0.1 });
+        var flameMat  = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff4400, emissiveIntensity: 3 });
+        [-1.2, 1.2].forEach(function(z) {
+            var nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.35*S, 0.5*S, 0.8*S, 10), nozzleMat.clone());
+            nozzle.rotation.z = Math.PI / 2;
+            nozzle.position.set(-2.8*S, 0, z*S);
+            g.add(nozzle);
+            var flame = new THREE.Mesh(new THREE.ConeGeometry(0.3*S, 1.2*S, 8), flameMat.clone());
+            flame.rotation.z = -Math.PI / 2;
+            flame.position.set(-3.6*S, 0, z*S);
+            g.add(flame);
+        });
+
+        // Cannon
+        var cannon = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12*S, 0.12*S, 2*S, 6),
+            new THREE.MeshStandardMaterial({ color: 0xaabbcc, metalness: 1, roughness: 0.1 })
+        );
+        cannon.rotation.z = Math.PI / 2;
+        cannon.position.set(3.5*S, 0, 0);
+        g.add(cannon);
+
+        return { group: g, color: new THREE.Color(0x7799dd) };
+    }
+
+    // ── ASTEROID ───────────────────────────────────────────────────────────────
+    function makeAsteroid() {
+        var g = new THREE.Group();
+        var shade = 0.22 + Math.random() * 0.18;
+        var col = Math.random() > 0.5
+            ? new THREE.Color(shade+0.08, shade*0.80, shade*0.65)
+            : new THREE.Color(shade*0.95, shade*0.92, shade*0.88);
+
+        var scaleX = 0.6 + Math.random() * 0.8;
+        var scaleY = 0.5 + Math.random() * 0.6;
+        var scaleZ = 0.7 + Math.random() * 0.7;
+
+        var geo = new THREE.IcosahedronGeometry(2.2*S, 2);
+        var pos = geo.attributes.position;
+        for (var v = 0; v < pos.count; v++) {
+            var n = 0.72 + Math.random() * 0.56;
+            pos.setXYZ(v, pos.getX(v)*scaleX*n, pos.getY(v)*scaleY*n, pos.getZ(v)*scaleZ*n);
+        }
+        geo.computeVertexNormals();
+        g.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, roughness: 0.98, metalness: 0.02, flatShading: true })));
+
+        for (var b = 0; b < 2 + Math.floor(Math.random()*2); b++) {
+            var bSize = (0.3 + Math.random()*0.5) * S;
+            var bGeo = new THREE.IcosahedronGeometry(bSize, 1);
+            var bPos = bGeo.attributes.position;
+            for (var bv = 0; bv < bPos.count; bv++) {
+                var bn = 0.65 + Math.random()*0.7;
+                bPos.setXYZ(bv, bPos.getX(bv)*bn, bPos.getY(bv)*bn, bPos.getZ(bv)*bn);
+            }
+            bGeo.computeVertexNormals();
+            var d = shade*0.75;
+            var boulder = new THREE.Mesh(bGeo, new THREE.MeshStandardMaterial({ color: new THREE.Color(d+0.05, d*0.8, d*0.65), roughness: 1.0, flatShading: true }));
+            var ang = Math.random()*Math.PI*2;
+            var elv = (Math.random()-0.5)*Math.PI*0.8;
+            boulder.position.set(Math.cos(elv)*Math.cos(ang)*2*S*scaleX, Math.sin(elv)*2*S*scaleY, Math.cos(elv)*Math.sin(ang)*2*S*scaleZ);
+            boulder.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+            g.add(boulder);
+        }
+
+        return { group: g, color: col };
+    }
+
+    // ── SATELLITE ──────────────────────────────────────────────────────────────
+    function makeSatellite() {
+        var g = new THREE.Group();
+        var metalMat = new THREE.MeshStandardMaterial({ color: 0xccccdd, emissive: 0x111122, metalness: 0.9, roughness: 0.15 });
+        var panelMat = new THREE.MeshStandardMaterial({ color: 0x1133aa, emissive: 0x0022aa, emissiveIntensity: 0.6, side: THREE.DoubleSide });
+
+        // Hub
+        var hub = new THREE.Mesh(new THREE.CylinderGeometry(0.7*S, 0.7*S, 2.5*S, 10), metalMat);
+        hub.rotation.z = Math.PI / 2;
+        g.add(hub);
+
+        // Side modules
+        [-1.8, 1.8].forEach(function(x) {
+            var mod = new THREE.Mesh(new THREE.CylinderGeometry(0.5*S, 0.5*S, 1.8*S, 8), metalMat.clone());
+            mod.rotation.z = Math.PI / 2;
+            mod.position.set(x*S, 0, 0);
+            g.add(mod);
+        });
+
+        // Solar panels (4 wings)
+        var frameBar = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.9, roughness: 0.2 });
+        [3.8, -3.8, 6.8, -6.8].forEach(function(z) {
+            var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08*S, 0.08*S, 2.8*S, 6), frameBar.clone());
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(0, 0, z*S*0.38);
+            g.add(bar);
+            var panel = new THREE.Mesh(new THREE.BoxGeometry(2.6*S, 0.07*S, 1.4*S), panelMat.clone());
+            panel.position.set(0, 0, z*S*0.38);
+            g.add(panel);
+        });
+
+        // Antenna + dish
+        var mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06*S, 0.06*S, 2.2*S, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x333333 }));
+        mast.position.set(0, 1.6*S, 0);
+        g.add(mast);
+
+        var dish = new THREE.Mesh(
+            new THREE.SphereGeometry(0.65*S, 12, 6, 0, Math.PI*2, 0, Math.PI*0.5),
+            new THREE.MeshStandardMaterial({ color: 0xeeeeee, emissive: 0x222222, side: THREE.DoubleSide })
+        );
+        dish.position.set(0, 2.8*S, 0);
+        dish.rotation.x = Math.PI;
+        g.add(dish);
+
+        // Blinking light
+        var blink = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15*S, 6, 6),
+            new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 3 })
+        );
+        blink.position.set(0, 3.3*S, 0);
+        blink.userData.isBlink = true;
+        g.add(blink);
+
+        return { group: g, color: new THREE.Color(0xaabbcc) };
+    }
+
+    // ── Spawn objects ──────────────────────────────────────────────────────────
+    var TOTAL = 30, BOUNDS = 55;
     var objects = [];
-    var isMobile = ('ontouchstart' in window);
-
-    function makeGeo() {
-        // Bigger on mobile for easier tapping
-        var s = isMobile ? 1.5 : 1.0;
-        var r = Math.random();
-        if (r < 0.33) return new THREE.BoxGeometry(3*s, 3*s, 3*s);
-        if (r < 0.66) return new THREE.IcosahedronGeometry(2*s, 0);
-        return new THREE.TorusGeometry(1.8*s, 0.7*s, 16, 50);
-    }
 
     function randPos() {
-        return new THREE.Vector3(
-            (Math.random()-0.5)*BOUNDS*2,
-            Math.random()*18+5,
-            (Math.random()-0.5)*BOUNDS*2
-        );
+        return new THREE.Vector3((Math.random()-0.5)*BOUNDS*2, Math.random()*18+5, (Math.random()-0.5)*BOUNDS*2);
     }
 
     function spawn() {
-        var col = new THREE.Color().setHSL(Math.random(), 0.9, 0.55);
-        var mat = new THREE.MeshStandardMaterial({
-            color: col.clone(),
-            wireframe: false,
-        });
-        var mesh = new THREE.Mesh(makeGeo(), mat);
-        mesh.position.copy(randPos());
-        mesh.userData = {
-            vel: new THREE.Vector3((Math.random()-0.5)*0.07, (Math.random()-0.5)*0.05, (Math.random()-0.5)*0.07),
-            rot: new THREE.Vector3(Math.random()*0.035, Math.random()*0.035, 0),
-            origColor: col.clone(),
+        var r = Math.random();
+        var result = r < 0.33 ? makeSpaceship() : r < 0.66 ? makeAsteroid() : makeSatellite();
+        var obj = result.group;
+        obj.position.copy(randPos());
+        var isAsteroid = (r >= 0.33 && r < 0.66);
+        obj.rotation.set(
+            isAsteroid ? Math.random()*Math.PI*2 : (Math.random()-0.5)*0.3,
+            Math.random()*Math.PI*2,
+            isAsteroid ? Math.random()*Math.PI*2 : (Math.random()-0.5)*0.3
+        );
+        obj.userData = {
+            vel: new THREE.Vector3((Math.random()-0.5)*0.06, (Math.random()-0.5)*0.04, (Math.random()-0.5)*0.06),
+            rot: new THREE.Vector3(
+                isAsteroid ? Math.random()*0.025 : Math.random()*0.005,
+                Math.random()*0.012,
+                isAsteroid ? Math.random()*0.02 : 0
+            ),
+            origColor: result.color.clone(),
             flash: 0
         };
-        return mesh;
+        return obj;
     }
 
     for (var i = 0; i < TOTAL; i++) {
         var m = spawn(); scene.add(m); objects.push(m);
     }
 
-    // ── UI refs ────────────────────────────────────────────────────────────────
-    var scoreEl     = document.getElementById('score');
-    var hitsEl      = document.getElementById('hits-val');
-    var comboEl     = document.getElementById('combo-display');
-    var comboValEl  = document.getElementById('combo-val');
-    var bestCEl     = document.getElementById('best-combo-val');
-    var milestoneEl = document.getElementById('milestone');
-    var mTextEl     = document.getElementById('milestone-text');
-    var flashEl     = document.getElementById('hit-flash');
+    // ── Camera orbit ───────────────────────────────────────────────────────────
+    var camTheta = 0, camPhi = 1.1, camR = 40;
+    var camThetaV = 0, camPhiV = 0;
+    var orbiting = false, oLastX = 0, oLastY = 0;
 
-    var score = 0, hitCount = 0, combo = 1, bestCombo = 1;
-    var comboTimer = null, shown = {};
+    function applyCamera() {
+        camera.position.set(
+            camR * Math.sin(camPhi) * Math.sin(camTheta),
+            camR * Math.cos(camPhi),
+            camR * Math.sin(camPhi) * Math.cos(camTheta)
+        );
+        camera.lookAt(0, 5, 0);
+    }
+    applyCamera();
+
+    renderer.domElement.addEventListener('mousedown', function(e) { orbiting=true; oLastX=e.clientX; oLastY=e.clientY; });
+    window.addEventListener('mouseup', function() { orbiting=false; });
+    window.addEventListener('mousemove', function(e) {
+        if (!orbiting) return;
+        camThetaV -= (e.clientX-oLastX)*0.005;
+        camPhiV   -= (e.clientY-oLastY)*0.005;
+        oLastX=e.clientX; oLastY=e.clientY;
+    });
+
+    // ── Scoring ────────────────────────────────────────────────────────────────
+    var score=0, hitCount=0, combo=1, bestCombo=0, comboTimer=null, shown={};
+
+    var scoreEl    = document.getElementById('score');
+    var hitsEl     = document.getElementById('hits-val');
+    var comboEl    = document.getElementById('combo-display');
+    var comboValEl = document.getElementById('combo-val');
+    var bestCEl    = document.getElementById('best-combo-val');
+    var milestoneEl= document.getElementById('milestone');
+    var mTextEl    = document.getElementById('milestone-text');
+    var flashEl    = document.getElementById('hit-flash');
+
     var MS = [[500,'NICE!'],[1000,'KABOOM!'],[2500,'STARK!'],[5000,'UNAUFHALTBAR!'],[10000,'LEGENDÄR!']];
 
     function checkMS() {
@@ -190,7 +453,7 @@
             if (score >= MS[k][0] && !shown[MS[k][0]]) {
                 shown[MS[k][0]] = true;
                 mTextEl.textContent = MS[k][1];
-                milestoneEl.style.opacity = '1';
+                milestoneEl.style.opacity='1';
                 setTimeout(function(){ milestoneEl.style.opacity='0'; }, 1600);
                 break;
             }
@@ -199,54 +462,45 @@
 
     function bumpCombo() {
         combo++;
-        if (combo > bestCombo) { bestCombo = combo; bestCEl.textContent = bestCombo; }
-        comboValEl.textContent = combo;
-        comboEl.style.opacity = '1';
+        if (combo>bestCombo) { bestCombo=combo; bestCEl.textContent=bestCombo; }
+        comboValEl.textContent=combo;
+        comboEl.style.opacity='1';
         if (comboTimer) clearTimeout(comboTimer);
-        comboTimer = setTimeout(function(){ combo=1; comboEl.style.opacity='0'; }, 2500);
+        comboTimer=setTimeout(function(){ combo=1; comboEl.style.opacity='0'; }, 2500);
     }
 
-    // ── Raycasting shoot ───────────────────────────────────────────────────────
+    // ── Shoot ──────────────────────────────────────────────────────────────────
     var ray = new THREE.Raycaster();
-    // Make raycaster more forgiving (larger threshold for lines/points, irrelevant here but good practice)
     var ndc = new THREE.Vector2();
 
     function shoot(px, py) {
-        ndc.x = (px / window.innerWidth)  *  2 - 1;
-        ndc.y = (py / window.innerHeight) * -2 + 1;
+        ndc.x = (px/window.innerWidth)*2-1;
+        ndc.y = -(py/window.innerHeight)*2+1;
         ray.setFromCamera(ndc, camera);
+        var hits = ray.intersectObjects(objects, true);
 
-        // On mobile, expand hit area by testing a small region around the tap
-        var hits = ray.intersectObjects(objects);
-
-        if (hits.length === 0 && isMobile) {
-            // Try slightly offset rays for fat-finger tolerance (±20px offsets)
-            var offsets = [[-20,0],[20,0],[0,-20],[0,20],[-14,-14],[14,14],[-14,14],[14,-14]];
-            for (var o = 0; o < offsets.length && hits.length === 0; o++) {
-                ndc.x = ((px + offsets[o][0]) / window.innerWidth)  *  2 - 1;
-                ndc.y = ((py + offsets[o][1]) / window.innerHeight) * -2 + 1;
+        if (hits.length===0 && isMobile) {
+            var offs = [[-20,0],[20,0],[0,-20],[0,20],[-14,-14],[14,14],[-14,14],[14,-14]];
+            for (var o=0; o<offs.length && hits.length===0; o++) {
+                ndc.x = ((px+offs[o][0])/window.innerWidth)*2-1;
+                ndc.y = -((py+offs[o][1])/window.innerHeight)*2+1;
                 ray.setFromCamera(ndc, camera);
-                hits = ray.intersectObjects(objects);
+                hits = ray.intersectObjects(objects, true);
             }
         }
 
-        if (hits.length > 0) {
-            var obj = hits[0].object;
-            obj.userData.vel.set(
-                (Math.random()-0.5)*3.5,
-                2.4,
-                (Math.random()-0.5)*3.5
-            );
-            obj.userData.rot.x = 0.5;
-            obj.userData.rot.y = 0.5;
-            obj.userData.flash = 12;
-
-            score += 100 * combo;
-            hitCount++;
+        if (hits.length>0) {
+            var top = hits[0].object;
+            while (top.parent && objects.indexOf(top)===-1) top=top.parent;
+            top.userData.vel.set((Math.random()-0.5)*3.5, 2.4, (Math.random()-0.5)*3.5);
+            top.userData.rot.x = 0.4;
+            top.userData.rot.y = 0.4;
+            top.userData.flash = 12;
+            score += 100*combo; hitCount++;
             scoreEl.textContent = score.toLocaleString();
             hitsEl.textContent = hitCount;
             bumpCombo();
-            flashEl.style.opacity = '1';
+            flashEl.style.opacity='1';
             setTimeout(function(){ flashEl.style.opacity='0'; }, 120);
             checkMS();
             return true;
@@ -254,132 +508,126 @@
         return false;
     }
 
-    // ── Visual tap feedback ────────────────────────────────────────────────────
-    function showTapRing(x, y, hit) {
-        var ring = document.createElement('div');
-        ring.className = 'tap-ring';
-        ring.style.left = x + 'px';
-        ring.style.top  = y + 'px';
-        ring.style.borderColor = hit ? '#ffff00' : '#00ffcc';
+    function showRing(x, y, hit) {
+        var ring=document.createElement('div');
+        ring.className='tap-ring';
+        ring.style.left=x+'px'; ring.style.top=y+'px';
+        ring.style.borderColor=hit?'#ffff00':'#00ffcc';
         document.body.appendChild(ring);
         setTimeout(function(){ ring.remove(); }, 500);
     }
 
-    // ── Input: separate mouse vs touch completely ──────────────────────────────
-
-    // MOUSE (desktop)
-    var mDownX = 0, mDownY = 0;
-    renderer.domElement.addEventListener('mousedown', function(e) {
-        mDownX = e.clientX; mDownY = e.clientY;
-    });
+    // ── Mouse input ────────────────────────────────────────────────────────────
+    var mDownX=0, mDownY=0;
+    renderer.domElement.addEventListener('mousedown', function(e) { mDownX=e.clientX; mDownY=e.clientY; });
     renderer.domElement.addEventListener('mouseup', function(e) {
-        var dx = e.clientX - mDownX, dy = e.clientY - mDownY;
-        if (Math.sqrt(dx*dx + dy*dy) < 10) {
-            shoot(e.clientX, e.clientY);
-        }
+        var dx=e.clientX-mDownX, dy=e.clientY-mDownY;
+        if (Math.sqrt(dx*dx+dy*dy)<10) shoot(e.clientX, e.clientY);
     });
 
-    // Mouse orbit
-    var orbiting = false, oLastX = 0, oLastY = 0;
-    renderer.domElement.addEventListener('mousedown', function(e) { orbiting=true; oLastX=e.clientX; oLastY=e.clientY; });
-    window.addEventListener('mouseup', function() { orbiting=false; });
-    window.addEventListener('mousemove', function(e) {
-        if (!orbiting) return;
-        camThetaV -= (e.clientX - oLastX) * 0.005;
-        camPhiV   -= (e.clientY - oLastY) * 0.005;
-        oLastX = e.clientX; oLastY = e.clientY;
-    });
-
-    // TOUCH — completely independent
-    var tStartX = 0, tStartY = 0, tStartTime = 0, tMoved = false;
+    // ── Touch input ────────────────────────────────────────────────────────────
+    var tStartX=0, tStartY=0, tStartTime=0, tMoved=false;
 
     renderer.domElement.addEventListener('touchstart', function(e) {
-        e.preventDefault(); // critical: prevent browser from eating the event
-        var t = e.touches[0];
-        tStartX = t.clientX;
-        tStartY = t.clientY;
-        tStartTime = Date.now();
-        tMoved = false;
-        oLastX = t.clientX; oLastY = t.clientY;
-    }, { passive: false }); // passive:false so preventDefault works
+        e.preventDefault();
+        var t=e.touches[0];
+        tStartX=t.clientX; tStartY=t.clientY; tStartTime=Date.now(); tMoved=false;
+        oLastX=t.clientX; oLastY=t.clientY;
+    }, { passive:false });
 
     renderer.domElement.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var t = e.touches[0];
-        var dx = t.clientX - tStartX, dy = t.clientY - tStartY;
-        if (Math.sqrt(dx*dx+dy*dy) > 10) {
-            tMoved = true;
-            // Orbit
-            camThetaV -= (t.clientX - oLastX) * 0.005;
-            camPhiV   -= (t.clientY - oLastY) * 0.005;
+        var t=e.touches[0];
+        var dx=t.clientX-tStartX, dy=t.clientY-tStartY;
+        if (Math.sqrt(dx*dx+dy*dy)>10) {
+            tMoved=true;
+            camThetaV -= (t.clientX-oLastX)*0.005;
+            camPhiV   -= (t.clientY-oLastY)*0.005;
         }
-        oLastX = t.clientX; oLastY = t.clientY;
-    }, { passive: false });
+        oLastX=t.clientX; oLastY=t.clientY;
+    }, { passive:false });
 
     renderer.domElement.addEventListener('touchend', function(e) {
         e.preventDefault();
-        var dt = Date.now() - tStartTime;
-        // Pure tap: didn't move much AND was quick
-        if (!tMoved && dt < 400) {
-            var hit = shoot(tStartX, tStartY);
-            showTapRing(tStartX, tStartY, hit);
+        if (!tMoved && Date.now()-tStartTime<400) {
+            var hit=shoot(tStartX, tStartY);
+            showRing(tStartX, tStartY, hit);
         }
-    }, { passive: false });
+    }, { passive:false });
+
+    // ── Restart ────────────────────────────────────────────────────────────────
+    document.getElementById('restart-btn').addEventListener('click', function() {
+        score=0; hitCount=0; combo=1; bestCombo=0; shown={};
+        scoreEl.textContent='0'; hitsEl.textContent='0'; bestCEl.textContent='0';
+        comboEl.style.opacity='0'; milestoneEl.style.opacity='0';
+        if (comboTimer) clearTimeout(comboTimer);
+        objects.forEach(function(obj) {
+            obj.position.copy(randPos());
+            obj.userData.vel.set((Math.random()-0.5)*0.06,(Math.random()-0.5)*0.04,(Math.random()-0.5)*0.06);
+            obj.userData.flash=0;
+            obj.traverse(function(child) { if (child.isMesh) child.material.color.copy(obj.userData.origColor); });
+        });
+    });
 
     // ── Resize ─────────────────────────────────────────────────────────────────
     window.addEventListener('resize', function() {
-        W = window.innerWidth; H = window.innerHeight;
-        camera.aspect = W/H;
-        camera.updateProjectionMatrix();
+        W=window.innerWidth; H=window.innerHeight;
+        camera.aspect=W/H; camera.updateProjectionMatrix();
         renderer.setSize(W, H);
     });
 
     // ── Game loop ──────────────────────────────────────────────────────────────
-    var lightAngle = 0;
+    var lightAngle=0, blinkTime=0;
 
     function animate() {
         requestAnimationFrame(animate);
 
-        // Auto-rotate + damping
-        if (!orbiting && !tMoved) camThetaV -= 0.003;
+        // Camera
+        if (!orbiting) camThetaV -= 0.003;
         camTheta += camThetaV;
-        camPhi = Math.max(0.2, Math.min(Math.PI*0.82, camPhi + camPhiV));
-        camThetaV *= 0.9;
-        camPhiV   *= 0.9;
+        camPhi = Math.max(0.2, Math.min(Math.PI*0.82, camPhi+camPhiV));
+        camThetaV *= 0.9; camPhiV *= 0.9;
         applyCamera();
 
-        // Animate light
+        // Lights & planets
         lightAngle += 0.004;
-        pl1.position.x = Math.sin(lightAngle) * 35;
-        pl1.position.z = Math.cos(lightAngle) * 35;
+        pl1.position.x = Math.sin(lightAngle)*35;
+        pl1.position.z = Math.cos(lightAngle)*35;
+        planets.forEach(function(p) { p.rotation.y += p.userData.rotSpeed; });
 
-        // Update shapes
+        // Blink satellite lights
+        blinkTime += 0.05;
+        var blinkOn = Math.sin(blinkTime*3) > 0.5;
+        objects.forEach(function(obj) {
+            obj.traverse(function(child) {
+                if (child.userData.isBlink) child.material.emissiveIntensity = blinkOn ? 4 : 0.1;
+            });
+        });
+
+        // Update objects
         objects.forEach(function(obj) {
             obj.position.add(obj.userData.vel);
             obj.rotation.x += obj.userData.rot.x;
             obj.rotation.y += obj.userData.rot.y;
-            obj.userData.vel.y -= 0.03; // gravity
+            obj.userData.vel.y -= 0.03;
 
-            // Floor bounce
             if (obj.position.y < 1.5) {
-                obj.position.y = 1.5;
+                obj.position.y=1.5;
                 obj.userData.vel.y *= -0.72;
                 obj.userData.vel.x *= 0.92;
                 obj.userData.vel.z *= 0.92;
             }
 
-            // Hit flash
             if (obj.userData.flash > 0) {
-                obj.material.color.setHex(0xffffff);
+                obj.traverse(function(c) { if (c.isMesh) c.material.color.setHex(0xffffff); });
                 obj.userData.flash--;
             } else {
-                obj.material.color.copy(obj.userData.origColor);
+                obj.traverse(function(c) { if (c.isMesh) c.material.color.copy(obj.userData.origColor); });
             }
 
-            // Respawn out-of-bounds
-            if (Math.abs(obj.position.x) > BOUNDS+25 || Math.abs(obj.position.z) > BOUNDS+25 || obj.position.y < -35) {
+            if (Math.abs(obj.position.x)>BOUNDS+25 || Math.abs(obj.position.z)>BOUNDS+25 || obj.position.y<-35) {
                 obj.position.copy(randPos());
-                obj.userData.vel.set((Math.random()-0.5)*0.07,(Math.random()-0.5)*0.05,(Math.random()-0.5)*0.07);
+                obj.userData.vel.set((Math.random()-0.5)*0.06,(Math.random()-0.5)*0.04,(Math.random()-0.5)*0.06);
             }
         });
 
