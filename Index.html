@@ -1,10 +1,534 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Index</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            overflow: hidden;
+            background: #050505;
+            color: white;
+            font-family: 'Share Tech Mono', monospace;
+            cursor: crosshair;
+        }
+
+        canvas { display: block; }
+
+        #ui {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        #header {
+            text-align: center;
+            padding: 18px 20px 0;
+        }
+
+        h1 {
+            font-family: 'VT323', monospace;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            background: linear-gradient(90deg, #ff00ff, #00ffcc, #ff00ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+
+        #subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            text-align: right;
+            pointer-events: none;
+        }
+
+        .hud-label {
+            font-size: 0.65rem;
+            color: #666;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-family: 'VT323', monospace;
+            font-size: 2.8rem;
+            color: #00ffcc;
+            text-shadow: 0 0 20px #00ffcc88;
+            line-height: 1;
+        }
+
+        #combo-display {
+            font-family: 'VT323', monospace;
+            font-size: 1.6rem;
+            color: #ff00ff;
+            text-shadow: 0 0 15px #ff00ff88;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #milestone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        #milestone-text {
+            font-family: 'VT323', monospace;
+            font-size: clamp(3rem, 8vw, 6rem);
+            letter-spacing: 6px;
+            color: #ffff00;
+            text-shadow: 0 0 40px #ffff0099, 3px 3px 0 #ff6600;
+        }
+
+        #milestone-sub {
+            font-size: 0.9rem;
+            color: #fff;
+            letter-spacing: 3px;
+            margin-top: -10px;
+        }
+
+        #bottom-bar {
+            position: absolute;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #222;
+            border-radius: 6px;
+            padding: 8px 24px;
+            pointer-events: none;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: #555;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .stat-val {
+            font-family: 'VT323', monospace;
+            font-size: 1.4rem;
+            color: #ff00ff;
+        }
+
+        /* Hit flash overlay */
+        #hit-flash {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.12) 0%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+
+        /* Scanline effect */
+        #scanlines {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.07) 2px,
+                rgba(0,0,0,0.07) 4px
+            );
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #drag-hint {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: #333;
+            letter-spacing: 2px;
+            pointer-events: none;
+            animation: fade-hint 6s ease forwards;
+        }
+
+        @keyframes fade-hint {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to the Landing Page</h1>
-    <p>This is the Index file for the landing page.</p>
+
+<div id="ui">
+    <div id="header">
+        <h1>Neon Arcade</h1>
+        <div id="subtitle">CLICK TO BLAST · DRAG TO ORBIT</div>
+    </div>
+</div>
+
+<div id="hud">
+    <div class="hud-label">SCORE</div>
+    <div class="hud-value" id="score">0</div>
+    <div id="combo-display">x<span id="combo-val">1</span> COMBO</div>
+</div>
+
+<div id="milestone">
+    <div id="milestone-text"></div>
+    <div id="milestone-sub"></div>
+</div>
+
+<div id="bottom-bar">
+    <div class="stat">
+        <div class="stat-label">Blasted</div>
+        <div class="stat-val" id="hits-val">0</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">Active</div>
+        <div class="stat-val" id="active-val">40</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">Best Combo</div>
+        <div class="stat-val" id="best-combo-val">1</div>
+    </div>
+</div>
+
+<div id="hit-flash"></div>
+<div id="scanlines"></div>
+<div id="drag-hint">DRAG TO LOOK AROUND · CLICK SHAPES TO BLAST THEM</div>
+
+<script type="module">
+    import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+    import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+
+    // ─── Scene Setup ───────────────────────────────────────────────────────────
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050505, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+    camera.position.set(0, 15, 35);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
+    controls.maxPolarAngle = Math.PI * 0.85;
+
+    // ─── Environment ───────────────────────────────────────────────────────────
+    const grid = new THREE.GridHelper(200, 80, 0x00ffcc, 0x1a1a1a);
+    scene.add(grid);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambientLight);
+
+    const pointLight1 = new THREE.PointLight(0xff00ff, 2.0, 120);
+    pointLight1.position.set(0, 25, 0);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0x00ffcc, 1.5, 80);
+    pointLight2.position.set(20, 10, -20);
+    scene.add(pointLight2);
+
+    // Slowly orbit the point lights for dynamic lighting
+    let lightAngle = 0;
+
+    // ─── Object Pool ───────────────────────────────────────────────────────────
+    const TOTAL_SHAPES = 40;
+    const SPAWN_BOUNDS = 55;
+    const objects = [];
+
+    // Use separate geometry instances to avoid shared-geometry mutations
+    function makeGeometry() {
+        const r = Math.random();
+        if (r < 0.33) return new THREE.BoxGeometry(3, 3, 3);
+        if (r < 0.66) return new THREE.IcosahedronGeometry(2, 0);
+        return new THREE.TorusGeometry(1.5, 0.6, 16, 50);
+    }
+
+    function randomPosition() {
+        return new THREE.Vector3(
+            (Math.random() - 0.5) * SPAWN_BOUNDS * 2,
+            Math.random() * 20 + 5,
+            (Math.random() - 0.5) * SPAWN_BOUNDS * 2
+        );
+    }
+
+    function spawnObject(existingMesh = null) {
+        const geo = makeGeometry();
+        const isWireframe = Math.random() > 0.55;
+        const mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color().setHSL(Math.random(), 0.85, 0.55),
+            wireframe: isWireframe,
+            emissive: new THREE.Color().setHSL(Math.random(), 1, 0.08),
+        });
+
+        const mesh = existingMesh
+            ? (() => { existingMesh.geometry.dispose(); existingMesh.material.dispose(); return existingMesh; })()
+            : new THREE.Mesh(geo, mat);
+
+        if (!existingMesh) {
+            mesh.geometry = geo;
+            mesh.material = mat;
+        } else {
+            mesh.geometry = geo;
+            mesh.material = mat;
+        }
+
+        mesh.position.copy(randomPosition());
+        mesh.userData = {
+            velocity: new THREE.Vector3(
+                (Math.random() - 0.5) * 0.08,
+                (Math.random() - 0.5) * 0.08,
+                (Math.random() - 0.5) * 0.08
+            ),
+            rotationSpeed: new THREE.Vector3(
+                Math.random() * 0.04,
+                Math.random() * 0.04,
+                Math.random() * 0.04
+            ),
+            originalColor: mat.color.clone(),
+            hitFlashTimer: 0,
+            isAlive: true,
+        };
+
+        return mesh;
+    }
+
+    for (let i = 0; i < TOTAL_SHAPES; i++) {
+        const mesh = spawnObject();
+        scene.add(mesh);
+        objects.push(mesh);
+    }
+
+    // ─── Scoring & State ───────────────────────────────────────────────────────
+    let score = 0;
+    let hits = 0;
+    let combo = 1;
+    let bestCombo = 1;
+    let comboTimer = null;
+
+    const scoreEl = document.getElementById('score');
+    const hitsEl = document.getElementById('hits-val');
+    const activeEl = document.getElementById('active-val');
+    const comboEl = document.getElementById('combo-display');
+    const comboValEl = document.getElementById('combo-val');
+    const bestComboEl = document.getElementById('best-combo-val');
+    const milestoneEl = document.getElementById('milestone');
+    const milestoneTextEl = document.getElementById('milestone-text');
+    const milestoneSubEl = document.getElementById('milestone-sub');
+    const hitFlashEl = document.getElementById('hit-flash');
+
+    const MILESTONES = {
+        500: ['NICE SHOT!', ''],
+        1000: ['KABOOM!', '1K POINTS'],
+        2500: ['IMPRESSIVE!', '2.5K POINTS'],
+        5000: ['UNSTOPPABLE!', '5K POINTS'],
+        10000: ['LEGENDARY!', '10K POINTS'],
+        25000: ['GODLIKE!!!', '25K POINTS'],
+    };
+    const shownMilestones = new Set();
+
+    function showMilestone(title, sub) {
+        milestoneTextEl.textContent = title;
+        milestoneSubEl.textContent = sub;
+        milestoneEl.style.opacity = '1';
+        setTimeout(() => { milestoneEl.style.opacity = '0'; }, 1800);
+    }
+
+    function checkMilestones() {
+        for (const [threshold, [title, sub]] of Object.entries(MILESTONES)) {
+            if (score >= +threshold && !shownMilestones.has(+threshold)) {
+                shownMilestones.add(+threshold);
+                showMilestone(title, sub);
+                break;
+            }
+        }
+    }
+
+    function triggerCombo() {
+        combo++;
+        if (combo > bestCombo) {
+            bestCombo = combo;
+            bestComboEl.textContent = bestCombo;
+        }
+        comboValEl.textContent = combo;
+        comboEl.style.opacity = '1';
+        if (comboTimer) clearTimeout(comboTimer);
+        comboTimer = setTimeout(() => {
+            combo = 1;
+            comboEl.style.opacity = '0';
+        }, 2500);
+    }
+
+    function flashScreen() {
+        hitFlashEl.style.opacity = '1';
+        setTimeout(() => { hitFlashEl.style.opacity = '0'; }, 100);
+    }
+
+    // ─── Click / Drag Detection ─────────────────────────────────────────────────
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let pointerDownPos = null;
+    const DRAG_THRESHOLD = 6; // px
+
+    window.addEventListener('pointerdown', (e) => {
+        pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('pointerup', (e) => {
+        if (!pointerDownPos) return;
+        const dx = e.clientX - pointerDownPos.x;
+        const dy = e.clientY - pointerDownPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        pointerDownPos = null;
+
+        // Only fire if it was a click, not a drag
+        if (dist > DRAG_THRESHOLD) return;
+
+        mouse.x = (e.clientX / innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(objects);
+        if (intersects.length > 0) {
+            const hit = intersects[0].object;
+
+            // Blast physics
+            hit.userData.velocity.y = 2.2;
+            hit.userData.velocity.x = (Math.random() - 0.5) * 3.5;
+            hit.userData.velocity.z = (Math.random() - 0.5) * 3.5;
+            hit.userData.rotationSpeed.set(0.5, 0.5, 0.3);
+            hit.userData.hitFlashTimer = 8; // frames to show white
+
+            // Score
+            const points = 100 * combo;
+            score += points;
+            hits++;
+            scoreEl.textContent = score.toLocaleString();
+            hitsEl.textContent = hits;
+
+            triggerCombo();
+            flashScreen();
+            checkMilestones();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // ─── Out-of-bounds Respawn ──────────────────────────────────────────────────
+    const RESPAWN_LIMIT = SPAWN_BOUNDS + 20;
+
+    function respawnIfNeeded(obj) {
+        const p = obj.position;
+        if (
+            Math.abs(p.x) > RESPAWN_LIMIT ||
+            Math.abs(p.z) > RESPAWN_LIMIT ||
+            p.y < -30
+        ) {
+            // Respawn at a new random position with fresh properties
+            obj.position.copy(randomPosition());
+            obj.userData.velocity.set(
+                (Math.random() - 0.5) * 0.08,
+                (Math.random() - 0.5) * 0.08,
+                (Math.random() - 0.5) * 0.08
+            );
+            obj.userData.rotationSpeed.set(
+                Math.random() * 0.04,
+                Math.random() * 0.04,
+                Math.random() * 0.04
+            );
+        }
+    }
+
+    // ─── Game Loop ─────────────────────────────────────────────────────────────
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+
+        // Animate lights
+        lightAngle += 0.005;
+        pointLight1.position.x = Math.sin(lightAngle) * 30;
+        pointLight1.position.z = Math.cos(lightAngle) * 30;
+
+        let activeCount = 0;
+
+        objects.forEach(obj => {
+            obj.position.add(obj.userData.velocity);
+            obj.rotation.x += obj.userData.rotationSpeed.x;
+            obj.rotation.y += obj.userData.rotationSpeed.y;
+
+            // Gravity
+            obj.userData.velocity.y -= 0.03;
+
+            // Floor bounce
+            if (obj.position.y < 1.5) {
+                obj.position.y = 1.5;
+                obj.userData.velocity.y *= -0.75;
+                obj.userData.velocity.x *= 0.93;
+                obj.userData.velocity.z *= 0.93;
+            }
+
+            // Hit flash: show white briefly then restore original color
+            if (obj.userData.hitFlashTimer > 0) {
+                obj.material.color.setHex(0xffffff);
+                obj.userData.hitFlashTimer--;
+            } else {
+                obj.material.color.copy(obj.userData.originalColor);
+            }
+
+            // Respawn if drifted too far
+            respawnIfNeeded(obj);
+
+            // Count "active" (moving meaningfully)
+            const speed = obj.userData.velocity.lengthSq();
+            if (speed > 0.01) activeCount++;
+        });
+
+        activeEl.textContent = TOTAL_SHAPES;
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+</script>
 </body>
 </html>
