@@ -2,17 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Neon Arcade</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #050505; color: white; font-family: 'Share Tech Mono', monospace; cursor: crosshair; }
-        canvas { display: block; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { overflow: hidden; background: #050505; color: white; font-family: 'Share Tech Mono', monospace; touch-action: none; }
+        canvas { display: block; position: absolute; top: 0; left: 0; }
 
-        #ui { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; user-select: none; }
-        #header { text-align: center; padding: 18px 20px 0; }
-
+        #ui { position: absolute; top: 0; left: 0; right: 0; pointer-events: none; user-select: none; z-index: 10; }
+        #header { text-align: center; padding: 16px 20px 0; }
         h1 {
             font-family: 'VT323', monospace;
             font-size: clamp(2rem, 5vw, 3.5rem);
@@ -25,27 +24,39 @@
             animation: shimmer 3s linear infinite;
         }
         @keyframes shimmer { to { background-position: 200% center; } }
+        #subtitle { font-size: 0.7rem; color: #555; margin-top: 4px; letter-spacing: 2px; }
 
-        #subtitle { font-size: 0.75rem; color: #666; margin-top: 4px; letter-spacing: 2px; }
-
-        #hud { position: absolute; top: 20px; right: 24px; text-align: right; pointer-events: none; }
+        #hud { position: absolute; top: 16px; right: 20px; text-align: right; pointer-events: none; z-index: 10; }
         .hud-label { font-size: 0.6rem; color: #555; letter-spacing: 2px; text-transform: uppercase; }
         .hud-value { font-family: 'VT323', monospace; font-size: 2.8rem; color: #00ffcc; text-shadow: 0 0 20px #00ffcc88; line-height: 1; }
-        #combo-display { font-family: 'VT323', monospace; font-size: 1.6rem; color: #ff00ff; text-shadow: 0 0 15px #ff00ff88; opacity: 0; transition: opacity 0.3s; }
+        #combo-display { font-family: 'VT323', monospace; font-size: 1.5rem; color: #ff00ff; opacity: 0; transition: opacity 0.3s; }
 
-        #milestone { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.4s; }
-        #milestone-text { font-family: 'VT323', monospace; font-size: clamp(3rem, 8vw, 6rem); letter-spacing: 6px; color: #ffff00; text-shadow: 0 0 40px #ffff0099, 3px 3px 0 #ff6600; }
-        #milestone-sub { font-size: 0.9rem; color: #fff; letter-spacing: 3px; margin-top: -10px; }
+        #milestone { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.4s; z-index: 20; }
+        #milestone-text { font-family: 'VT323', monospace; font-size: clamp(3rem, 10vw, 6rem); letter-spacing: 6px; color: #ffff00; text-shadow: 0 0 40px #ffff0099, 3px 3px 0 #ff6600; }
 
-        #bottom-bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; gap: 30px; background: rgba(0,0,0,0.7); border: 1px solid #222; border-radius: 6px; padding: 8px 24px; pointer-events: none; }
+        #bottom-bar { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 24px; background: rgba(0,0,0,0.75); border: 1px solid #222; border-radius: 8px; padding: 8px 20px; pointer-events: none; z-index: 10; white-space: nowrap; }
         .stat { text-align: center; }
-        .stat-label { font-size: 0.6rem; color: #555; letter-spacing: 2px; text-transform: uppercase; }
+        .stat-label { font-size: 0.55rem; color: #555; letter-spacing: 2px; text-transform: uppercase; }
         .stat-val { font-family: 'VT323', monospace; font-size: 1.4rem; color: #ff00ff; }
 
-        #hit-flash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(255,255,255,0.12) 0%, transparent 70%); opacity: 0; pointer-events: none; transition: opacity 0.1s; }
-        #scanlines { position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px); pointer-events: none; z-index: 10; }
-        #drag-hint { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: #444; letter-spacing: 2px; pointer-events: none; animation: fade-hint 7s ease forwards; white-space: nowrap; }
-        @keyframes fade-hint { 0%{opacity:0} 15%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+        #hit-flash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%); opacity: 0; pointer-events: none; z-index: 5; }
+        #scanlines { position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px); pointer-events: none; z-index: 15; }
+
+        /* Big tap feedback bubble */
+        .tap-ring {
+            position: absolute;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid #00ffcc;
+            transform: translate(-50%, -50%) scale(0.2);
+            opacity: 1;
+            pointer-events: none;
+            z-index: 30;
+            animation: ring-out 0.5s ease-out forwards;
+        }
+        @keyframes ring-out {
+            to { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -53,7 +64,7 @@
 <div id="ui">
     <div id="header">
         <h1>Neon Arcade</h1>
-        <div id="subtitle">CLICK TO BLAST · DRAG TO ORBIT</div>
+        <div id="subtitle">TIPPEN = SCHIESSEN &nbsp;·&nbsp; ZIEHEN = KAMERA</div>
     </div>
 </div>
 
@@ -65,115 +76,91 @@
 
 <div id="milestone">
     <div id="milestone-text"></div>
-    <div id="milestone-sub"></div>
 </div>
 
 <div id="bottom-bar">
-    <div class="stat"><div class="stat-label">Blasted</div><div class="stat-val" id="hits-val">0</div></div>
-    <div class="stat"><div class="stat-label">Shapes</div><div class="stat-val" id="active-val">40</div></div>
+    <div class="stat"><div class="stat-label">Abgeschossen</div><div class="stat-val" id="hits-val">0</div></div>
     <div class="stat"><div class="stat-label">Best Combo</div><div class="stat-val" id="best-combo-val">1</div></div>
 </div>
 
 <div id="hit-flash"></div>
 <div id="scanlines"></div>
-<div id="drag-hint">DRAG TO LOOK AROUND · CLICK SHAPES TO BLAST THEM</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function() {
-    // ── Scene ──────────────────────────────────────────────────────────────────
-    var scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x050505, 0.012);
-
     var W = window.innerWidth, H = window.innerHeight;
-    var camera = new THREE.PerspectiveCamera(75, W/H, 0.1, 1000);
-    camera.position.set(0, 15, 35);
 
+    // ── Renderer ───────────────────────────────────────────────────────────────
     var renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
-    // ── Lighting ───────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-    var pl1 = new THREE.PointLight(0xff00ff, 2.0, 120);
+    // ── Scene ──────────────────────────────────────────────────────────────────
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050505, 0.011);
+
+    var camera = new THREE.PerspectiveCamera(70, W / H, 0.1, 1000);
+    camera.position.set(0, 18, 38);
+    camera.lookAt(0, 5, 0);
+
+    // ── Lights ─────────────────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    var pl1 = new THREE.PointLight(0xff00ff, 2.5, 130);
     pl1.position.set(0, 25, 0);
     scene.add(pl1);
-    var pl2 = new THREE.PointLight(0x00ffcc, 1.5, 80);
-    pl2.position.set(20, 10, -20);
-    scene.add(pl2);
+    scene.add(new THREE.PointLight(0x00ffcc, 1.5, 90));
 
     // ── Grid ───────────────────────────────────────────────────────────────────
     scene.add(new THREE.GridHelper(200, 80, 0x00ffcc, 0x1a1a1a));
 
-    // ── Simple Orbit Controls ──────────────────────────────────────────────────
-    var orbit = {
-        theta: 0, phi: 1.1, radius: 38,
-        thetaV: 0, phiV: 0,
-        dragging: false,
-        lastX: 0, lastY: 0,
-        autoSpeed: 0.003
-    };
+    // ── Camera orbit state ─────────────────────────────────────────────────────
+    var camTheta = 0, camPhi = 1.1, camR = 40;
+    var camThetaV = 0, camPhiV = 0;
 
-    function updateCamera() {
-        var x = orbit.radius * Math.sin(orbit.phi) * Math.sin(orbit.theta);
-        var y = orbit.radius * Math.cos(orbit.phi);
-        var z = orbit.radius * Math.sin(orbit.phi) * Math.cos(orbit.theta);
+    function applyCamera() {
+        var x = camR * Math.sin(camPhi) * Math.sin(camTheta);
+        var y = camR * Math.cos(camPhi);
+        var z = camR * Math.sin(camPhi) * Math.cos(camTheta);
         camera.position.set(x, y, z);
         camera.lookAt(0, 5, 0);
     }
+    applyCamera();
 
-    renderer.domElement.addEventListener('mousedown', function(e) {
-        orbit.dragging = true; orbit.lastX = e.clientX; orbit.lastY = e.clientY;
-    });
-    window.addEventListener('mouseup', function() { orbit.dragging = false; });
-    window.addEventListener('mousemove', function(e) {
-        if (!orbit.dragging) return;
-        orbit.thetaV -= (e.clientX - orbit.lastX) * 0.005;
-        orbit.phiV   -= (e.clientY - orbit.lastY) * 0.005;
-        orbit.lastX = e.clientX; orbit.lastY = e.clientY;
-    });
-    renderer.domElement.addEventListener('wheel', function(e) {
-        orbit.radius = Math.max(10, Math.min(100, orbit.radius + e.deltaY * 0.05));
-    }, { passive: true });
-
-    // Touch
-    renderer.domElement.addEventListener('touchstart', function(e) {
-        orbit.dragging = true; orbit.lastX = e.touches[0].clientX; orbit.lastY = e.touches[0].clientY;
-    }, { passive: true });
-    window.addEventListener('touchend', function() { orbit.dragging = false; });
-    window.addEventListener('touchmove', function(e) {
-        if (!orbit.dragging) return;
-        orbit.thetaV -= (e.touches[0].clientX - orbit.lastX) * 0.005;
-        orbit.phiV   -= (e.touches[0].clientY - orbit.lastY) * 0.005;
-        orbit.lastX = e.touches[0].clientX; orbit.lastY = e.touches[0].clientY;
-    }, { passive: true });
-
-    // ── Objects ────────────────────────────────────────────────────────────────
+    // ── Shapes ─────────────────────────────────────────────────────────────────
     var TOTAL = 40, BOUNDS = 55;
     var objects = [];
+    var isMobile = ('ontouchstart' in window);
 
     function makeGeo() {
+        // Bigger on mobile for easier tapping
+        var s = isMobile ? 1.5 : 1.0;
         var r = Math.random();
-        if (r < 0.33) return new THREE.BoxGeometry(3, 3, 3);
-        if (r < 0.66) return new THREE.IcosahedronGeometry(2, 0);
-        return new THREE.TorusGeometry(1.5, 0.6, 16, 50);
+        if (r < 0.33) return new THREE.BoxGeometry(3*s, 3*s, 3*s);
+        if (r < 0.66) return new THREE.IcosahedronGeometry(2*s, 0);
+        return new THREE.TorusGeometry(1.8*s, 0.7*s, 16, 50);
     }
 
     function randPos() {
         return new THREE.Vector3(
-            (Math.random()-0.5)*BOUNDS*2, Math.random()*20+5, (Math.random()-0.5)*BOUNDS*2
+            (Math.random()-0.5)*BOUNDS*2,
+            Math.random()*18+5,
+            (Math.random()-0.5)*BOUNDS*2
         );
     }
 
-    function spawnMesh() {
-        var col = new THREE.Color().setHSL(Math.random(), 0.85, 0.55);
-        var mat = new THREE.MeshStandardMaterial({ color: col.clone(), wireframe: Math.random() > 0.55 });
+    function spawn() {
+        var col = new THREE.Color().setHSL(Math.random(), 0.9, 0.55);
+        var mat = new THREE.MeshStandardMaterial({
+            color: col.clone(),
+            wireframe: Math.random() > 0.6,
+        });
         var mesh = new THREE.Mesh(makeGeo(), mat);
         mesh.position.copy(randPos());
         mesh.userData = {
-            vel: new THREE.Vector3((Math.random()-0.5)*0.08, (Math.random()-0.5)*0.08, (Math.random()-0.5)*0.08),
-            rot: new THREE.Vector3(Math.random()*0.04, Math.random()*0.04, 0),
+            vel: new THREE.Vector3((Math.random()-0.5)*0.07, (Math.random()-0.5)*0.05, (Math.random()-0.5)*0.07),
+            rot: new THREE.Vector3(Math.random()*0.035, Math.random()*0.035, 0),
             origColor: col.clone(),
             flash: 0
         };
@@ -181,86 +168,165 @@
     }
 
     for (var i = 0; i < TOTAL; i++) {
-        var m = spawnMesh(); scene.add(m); objects.push(m);
+        var m = spawn(); scene.add(m); objects.push(m);
     }
 
     // ── UI refs ────────────────────────────────────────────────────────────────
-    var scoreEl = document.getElementById('score');
-    var hitsEl  = document.getElementById('hits-val');
-    var comboEl = document.getElementById('combo-display');
-    var comboValEl = document.getElementById('combo-val');
-    var bestComboEl = document.getElementById('best-combo-val');
+    var scoreEl     = document.getElementById('score');
+    var hitsEl      = document.getElementById('hits-val');
+    var comboEl     = document.getElementById('combo-display');
+    var comboValEl  = document.getElementById('combo-val');
+    var bestCEl     = document.getElementById('best-combo-val');
     var milestoneEl = document.getElementById('milestone');
-    var mTextEl = document.getElementById('milestone-text');
-    var mSubEl  = document.getElementById('milestone-sub');
-    var flashEl = document.getElementById('hit-flash');
+    var mTextEl     = document.getElementById('milestone-text');
+    var flashEl     = document.getElementById('hit-flash');
 
     var score = 0, hitCount = 0, combo = 1, bestCombo = 1;
-    var comboTimer = null;
-    var shown = {};
-    var MILESTONES = [[500,'NICE SHOT!',''],[1000,'KABOOM!','1K'],[2500,'IMPRESSIVE!','2.5K'],[5000,'UNSTOPPABLE!','5K'],[10000,'LEGENDARY!','10K'],[25000,'GODLIKE!!!','25K']];
+    var comboTimer = null, shown = {};
+    var MS = [[500,'NICE!'],[1000,'KABOOM!'],[2500,'STARK!'],[5000,'UNAUFHALTBAR!'],[10000,'LEGENDÄR!']];
 
-    function checkMilestones() {
-        for (var k = 0; k < MILESTONES.length; k++) {
-            var mm = MILESTONES[k];
-            if (score >= mm[0] && !shown[mm[0]]) {
-                shown[mm[0]] = true;
-                mTextEl.textContent = mm[1]; mSubEl.textContent = mm[2];
+    function checkMS() {
+        for (var k=0; k<MS.length; k++) {
+            if (score >= MS[k][0] && !shown[MS[k][0]]) {
+                shown[MS[k][0]] = true;
+                mTextEl.textContent = MS[k][1];
                 milestoneEl.style.opacity = '1';
-                setTimeout(function(){ milestoneEl.style.opacity = '0'; }, 1800);
+                setTimeout(function(){ milestoneEl.style.opacity='0'; }, 1600);
                 break;
             }
         }
     }
 
-    function addCombo() {
+    function bumpCombo() {
         combo++;
-        if (combo > bestCombo) { bestCombo = combo; bestComboEl.textContent = bestCombo; }
+        if (combo > bestCombo) { bestCombo = combo; bestCEl.textContent = bestCombo; }
         comboValEl.textContent = combo;
         comboEl.style.opacity = '1';
         if (comboTimer) clearTimeout(comboTimer);
-        comboTimer = setTimeout(function(){ combo = 1; comboEl.style.opacity = '0'; }, 2500);
+        comboTimer = setTimeout(function(){ combo=1; comboEl.style.opacity='0'; }, 2500);
     }
 
-    // ── Click / Drag detection ─────────────────────────────────────────────────
-    var raycaster = new THREE.Raycaster();
-    var mouse2d = new THREE.Vector2();
-    var pdX = 0, pdY = 0, pointerIsDown = false;
+    // ── Raycasting shoot ───────────────────────────────────────────────────────
+    var ray = new THREE.Raycaster();
+    // Make raycaster more forgiving (larger threshold for lines/points, irrelevant here but good practice)
+    var ndc = new THREE.Vector2();
 
-    renderer.domElement.addEventListener('pointerdown', function(e) {
-        pointerIsDown = true; pdX = e.clientX; pdY = e.clientY;
-    });
+    function shoot(px, py) {
+        ndc.x = (px / window.innerWidth)  *  2 - 1;
+        ndc.y = (py / window.innerHeight) * -2 + 1;
+        ray.setFromCamera(ndc, camera);
 
-    window.addEventListener('pointerup', function(e) {
-        if (!pointerIsDown) return;
-        var dx = e.clientX - pdX, dy = e.clientY - pdY;
-        pointerIsDown = false;
-        if (Math.sqrt(dx*dx + dy*dy) > 8) return; // drag — skip
+        // On mobile, expand hit area by testing a small region around the tap
+        var hits = ray.intersectObjects(objects);
 
-        mouse2d.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse2d.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse2d, camera);
+        if (hits.length === 0 && isMobile) {
+            // Try slightly offset rays for fat-finger tolerance (±20px offsets)
+            var offsets = [[-20,0],[20,0],[0,-20],[0,20],[-14,-14],[14,14],[-14,14],[14,-14]];
+            for (var o = 0; o < offsets.length && hits.length === 0; o++) {
+                ndc.x = ((px + offsets[o][0]) / window.innerWidth)  *  2 - 1;
+                ndc.y = ((py + offsets[o][1]) / window.innerHeight) * -2 + 1;
+                ray.setFromCamera(ndc, camera);
+                hits = ray.intersectObjects(objects);
+            }
+        }
 
-        var intersects = raycaster.intersectObjects(objects);
-        if (intersects.length > 0) {
-            var obj = intersects[0].object;
-            obj.userData.vel.y = 2.2;
-            obj.userData.vel.x = (Math.random()-0.5)*3.5;
-            obj.userData.vel.z = (Math.random()-0.5)*3.5;
-            obj.userData.rot.x = 0.5; obj.userData.rot.y = 0.5;
-            obj.userData.flash = 10;
+        if (hits.length > 0) {
+            var obj = hits[0].object;
+            obj.userData.vel.set(
+                (Math.random()-0.5)*3.5,
+                2.4,
+                (Math.random()-0.5)*3.5
+            );
+            obj.userData.rot.x = 0.5;
+            obj.userData.rot.y = 0.5;
+            obj.userData.flash = 12;
 
             score += 100 * combo;
             hitCount++;
             scoreEl.textContent = score.toLocaleString();
             hitsEl.textContent = hitCount;
-            addCombo();
+            bumpCombo();
             flashEl.style.opacity = '1';
-            setTimeout(function(){ flashEl.style.opacity = '0'; }, 100);
-            checkMilestones();
+            setTimeout(function(){ flashEl.style.opacity='0'; }, 120);
+            checkMS();
+            return true;
+        }
+        return false;
+    }
+
+    // ── Visual tap feedback ────────────────────────────────────────────────────
+    function showTapRing(x, y, hit) {
+        var ring = document.createElement('div');
+        ring.className = 'tap-ring';
+        ring.style.left = x + 'px';
+        ring.style.top  = y + 'px';
+        ring.style.borderColor = hit ? '#ffff00' : '#00ffcc';
+        document.body.appendChild(ring);
+        setTimeout(function(){ ring.remove(); }, 500);
+    }
+
+    // ── Input: separate mouse vs touch completely ──────────────────────────────
+
+    // MOUSE (desktop)
+    var mDownX = 0, mDownY = 0;
+    renderer.domElement.addEventListener('mousedown', function(e) {
+        mDownX = e.clientX; mDownY = e.clientY;
+    });
+    renderer.domElement.addEventListener('mouseup', function(e) {
+        var dx = e.clientX - mDownX, dy = e.clientY - mDownY;
+        if (Math.sqrt(dx*dx + dy*dy) < 10) {
+            shoot(e.clientX, e.clientY);
         }
     });
 
+    // Mouse orbit
+    var orbiting = false, oLastX = 0, oLastY = 0;
+    renderer.domElement.addEventListener('mousedown', function(e) { orbiting=true; oLastX=e.clientX; oLastY=e.clientY; });
+    window.addEventListener('mouseup', function() { orbiting=false; });
+    window.addEventListener('mousemove', function(e) {
+        if (!orbiting) return;
+        camThetaV -= (e.clientX - oLastX) * 0.005;
+        camPhiV   -= (e.clientY - oLastY) * 0.005;
+        oLastX = e.clientX; oLastY = e.clientY;
+    });
+
+    // TOUCH — completely independent
+    var tStartX = 0, tStartY = 0, tStartTime = 0, tMoved = false;
+
+    renderer.domElement.addEventListener('touchstart', function(e) {
+        e.preventDefault(); // critical: prevent browser from eating the event
+        var t = e.touches[0];
+        tStartX = t.clientX;
+        tStartY = t.clientY;
+        tStartTime = Date.now();
+        tMoved = false;
+        oLastX = t.clientX; oLastY = t.clientY;
+    }, { passive: false }); // passive:false so preventDefault works
+
+    renderer.domElement.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        var t = e.touches[0];
+        var dx = t.clientX - tStartX, dy = t.clientY - tStartY;
+        if (Math.sqrt(dx*dx+dy*dy) > 10) {
+            tMoved = true;
+            // Orbit
+            camThetaV -= (t.clientX - oLastX) * 0.005;
+            camPhiV   -= (t.clientY - oLastY) * 0.005;
+        }
+        oLastX = t.clientX; oLastY = t.clientY;
+    }, { passive: false });
+
+    renderer.domElement.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var dt = Date.now() - tStartTime;
+        // Pure tap: didn't move much AND was quick
+        if (!tMoved && dt < 400) {
+            var hit = shoot(tStartX, tStartY);
+            showTapRing(tStartX, tStartY, hit);
+        }
+    }, { passive: false });
+
+    // ── Resize ─────────────────────────────────────────────────────────────────
     window.addEventListener('resize', function() {
         W = window.innerWidth; H = window.innerHeight;
         camera.aspect = W/H;
@@ -274,29 +340,32 @@
     function animate() {
         requestAnimationFrame(animate);
 
-        // Orbit controls update
-        if (!orbit.dragging) orbit.thetaV -= orbit.autoSpeed;
-        orbit.theta += orbit.thetaV;
-        orbit.phi = Math.max(0.15, Math.min(Math.PI*0.85, orbit.phi + orbit.phiV));
-        orbit.thetaV *= 0.92; orbit.phiV *= 0.92;
-        updateCamera();
+        // Auto-rotate + damping
+        if (!orbiting && !tMoved) camThetaV -= 0.003;
+        camTheta += camThetaV;
+        camPhi = Math.max(0.2, Math.min(Math.PI*0.82, camPhi + camPhiV));
+        camThetaV *= 0.9;
+        camPhiV   *= 0.9;
+        applyCamera();
 
-        // Animate lights
-        lightAngle += 0.005;
-        pl1.position.x = Math.sin(lightAngle) * 30;
-        pl1.position.z = Math.cos(lightAngle) * 30;
+        // Animate light
+        lightAngle += 0.004;
+        pl1.position.x = Math.sin(lightAngle) * 35;
+        pl1.position.z = Math.cos(lightAngle) * 35;
 
+        // Update shapes
         objects.forEach(function(obj) {
             obj.position.add(obj.userData.vel);
             obj.rotation.x += obj.userData.rot.x;
             obj.rotation.y += obj.userData.rot.y;
-            obj.userData.vel.y -= 0.03;
+            obj.userData.vel.y -= 0.03; // gravity
 
+            // Floor bounce
             if (obj.position.y < 1.5) {
                 obj.position.y = 1.5;
-                obj.userData.vel.y *= -0.75;
-                obj.userData.vel.x *= 0.93;
-                obj.userData.vel.z *= 0.93;
+                obj.userData.vel.y *= -0.72;
+                obj.userData.vel.x *= 0.92;
+                obj.userData.vel.z *= 0.92;
             }
 
             // Hit flash
@@ -307,11 +376,10 @@
                 obj.material.color.copy(obj.userData.origColor);
             }
 
-            // Respawn if out of bounds
-            if (Math.abs(obj.position.x) > BOUNDS+20 || Math.abs(obj.position.z) > BOUNDS+20 || obj.position.y < -30) {
+            // Respawn out-of-bounds
+            if (Math.abs(obj.position.x) > BOUNDS+25 || Math.abs(obj.position.z) > BOUNDS+25 || obj.position.y < -35) {
                 obj.position.copy(randPos());
-                obj.userData.vel.set((Math.random()-0.5)*0.08, (Math.random()-0.5)*0.08, (Math.random()-0.5)*0.08);
-                obj.userData.rot.set(Math.random()*0.04, Math.random()*0.04, 0);
+                obj.userData.vel.set((Math.random()-0.5)*0.07,(Math.random()-0.5)*0.05,(Math.random()-0.5)*0.07);
             }
         });
 
